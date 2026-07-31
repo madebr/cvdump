@@ -4,10 +4,10 @@ import argparse
 import pathlib
 import zipfile
 
-import dump_tpi
-from msf import MsfFile
-import kaitai.dbi_stream
-import kaitai.tpi_stream
+from cvdump.dump_tpi import dump_tpi
+from cvdump.msf import MsfFile
+from cvdump.kaitai.dbi_stream import DbiStream
+from cvdump.kaitai.tpi_stream import TpiStream
 
 import kaitaistruct
 
@@ -30,17 +30,17 @@ def main():
 
         dbi = None
         tpi = None
-        def get_dbi() -> kaitai.dbi_stream.DbiStream:
+        def get_dbi() -> DbiStream:
             nonlocal dbi
             if not dbi:
                 dbi_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(MsfFile.DBI_STREAM_INDEX))
-                dbi = kaitai.dbi_stream.DbiStream(dbi_kaitai_stream)
+                dbi = DbiStream(dbi_kaitai_stream)
             return dbi
-        def get_tpi() -> kaitai.tpi_stream.TpiStream:
+        def get_tpi() -> TpiStream:
             nonlocal tpi
             if not tpi:
                 tpi_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(MsfFile.TPI_STREAM_INDEX))
-                tpi = kaitai.tpi_stream.TpiStream(tpi_kaitai_stream)
+                tpi = TpiStream(tpi_kaitai_stream)
             return tpi
 
         if args.create_zip:
@@ -104,7 +104,7 @@ def main():
                 start_name_index += dbi.source_info.module_file_counts[module_index]
 
         if args.dump_types:
-            dump_tpi.dump_tpi(get_tpi())
+            dump_tpi(get_tpi())
 
 if __name__ == "__main__":
     raise SystemExit(main())

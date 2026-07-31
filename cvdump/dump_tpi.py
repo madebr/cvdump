@@ -1,7 +1,7 @@
 import decimal
 import enum
 
-from kaitai.tpi_stream import TpiStream
+from cvdump.kaitai.tpi_stream import TpiStream
 
 
 class ClassFieldAttribute(enum.IntFlag): # CV_fldattr_t (cvinfo.h)

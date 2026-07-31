@@ -7,8 +7,8 @@ import typing
 
 import kaitaistruct
 
-import kaitai.msf_small_superblock
-import kaitai.msf_small_directory
+from cvdump.kaitai.msf_small_superblock import MsfSmallSuperblock
+from cvdump.kaitai.msf_small_directory import MsfSmallDirectory
 
 
 class MsfStream:
@@ -102,7 +102,7 @@ class MsfFile:
     """ The dbi (debug information) stream is always at index 3"""
     DBI_STREAM_INDEX = 3
 
-    def __init__(self, stream: typing.IO, superblock: kaitai.msf_small_superblock.MsfSmallSuperblock, directory: kaitai.msf_small_directory.MsfSmallDirectory):
+    def __init__(self, stream: typing.IO, superblock: MsfSmallSuperblock, directory: MsfSmallDirectory):
         self.stream = stream
         self.superblock = superblock
         self.directory = directory
@@ -122,12 +122,12 @@ class MsfFile:
     @classmethod
     def create(cls, stream: typing.IO[bytes]) -> "MsfFile":
         with kaitaistruct.KaitaiStream(stream) as kaitai_stream:
-            superblock = kaitai.msf_small_superblock.MsfSmallSuperblock(kaitai_stream)
+            superblock = MsfSmallSuperblock(kaitai_stream)
             # HACK: block kaitai from closing the bytes stream
             kaitai_stream._io = io.BytesIO()
         dir_msf_stream = MsfStream(stream, size=superblock.num_directory_bytes, block_size=superblock.block_size, block_map=superblock.block_map)
         with kaitaistruct.KaitaiStream(dir_msf_stream) as kaitai_stream:
-            directory = kaitai.msf_small_directory.MsfSmallDirectory(kaitai_stream)
+            directory = MsfSmallDirectory(kaitai_stream)
             # HACK: block kaitai from closing the bytes stream
             kaitai_stream._io = io.BytesIO()
         return MsfFile(stream=stream, superblock=superblock, directory=directory)
