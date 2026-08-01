@@ -29,6 +29,18 @@ class DbiStream(KaitaiStruct):
         self._raw_source_info = self._io.read_bytes(self.header.source_info_size)
         _io__raw_source_info = KaitaiStream(BytesIO(self._raw_source_info))
         self.source_info = DbiStream.DbiSourceInfo(_io__raw_source_info, self, self._root)
+        if self.header.is_new_header:
+            pass
+            self.type_server_map = self._io.read_bytes(self.header.new_header.type_server_map_size)
+
+        if self.header.is_new_header:
+            pass
+            self.ec_info = self._io.read_bytes(self.header.new_header.ec_size)
+
+        if self.header.is_new_header:
+            pass
+            self.dbg_hdr = self._io.read_bytes(self.header.new_header.size_debug_header)
+
 
 
     def _fetch_instances(self):
@@ -38,6 +50,15 @@ class DbiStream(KaitaiStruct):
         self.section_contribution._fetch_instances()
         self.section_map._fetch_instances()
         self.source_info._fetch_instances()
+        if self.header.is_new_header:
+            pass
+
+        if self.header.is_new_header:
+            pass
+
+        if self.header.is_new_header:
+            pass
+
 
     class DbiSourceInfo(KaitaiStruct):
         """DBI1::reloadFileInfo (dbi.cpp)."""
@@ -79,7 +100,7 @@ class DbiStream(KaitaiStruct):
 
 
     class DebugInformationHeader(KaitaiStruct):
-        """DBIHdr (dbi.h)."""
+        """OldDBIHdr / DBIHdr (dbi.h)."""
         def __init__(self, _io, _parent=None, _root=None):
             super(DbiStream.DebugInformationHeader, self).__init__(_io)
             self._parent = _parent
@@ -87,18 +108,88 @@ class DbiStream(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.global_symbol_stream = self._io.read_u2le()
-            self.public_symbol_stream = self._io.read_u2le()
-            self.symbol_record_stream = self._io.read_u2le()
-            self.reserved1 = self._io.read_u2le()
-            self.module_info_size = self._io.read_u4le()
-            self.section_contribution_size = self._io.read_u4le()
-            self.section_map_size = self._io.read_u4le()
-            self.source_info_size = self._io.read_u4le()
+            self.magic0 = self._io.read_u1()
+            self.magic1 = self._io.read_u1()
+            self.magic2 = self._io.read_u1()
+            self.magic3 = self._io.read_u1()
+            if self.is_new_header:
+                pass
+                self._raw_new_header = self._io.read_bytes(60)
+                _io__raw_new_header = KaitaiStream(BytesIO(self._raw_new_header))
+                self.new_header = DbiStream.NewDebugInformationHeader(self.magic0, self.magic1, self.magic2, self.magic3, _io__raw_new_header, self, self._root)
+
+            if (not (self.is_new_header)):
+                pass
+                self.old_header = DbiStream.OldDebugInformationHeader(self.magic0, self.magic1, self.magic2, self.magic3, self._io, self, self._root)
+
 
 
         def _fetch_instances(self):
             pass
+            if self.is_new_header:
+                pass
+                self.new_header._fetch_instances()
+
+            if (not (self.is_new_header)):
+                pass
+                self.old_header._fetch_instances()
+
+
+        @property
+        def global_symbol_stream(self):
+            if hasattr(self, '_m_global_symbol_stream'):
+                return self._m_global_symbol_stream
+
+            self._m_global_symbol_stream = (self.new_header.global_symbol_stream if self.is_new_header else self.magic0 + self.magic1 * 256)
+            return getattr(self, '_m_global_symbol_stream', None)
+
+        @property
+        def is_new_header(self):
+            if hasattr(self, '_m_is_new_header'):
+                return self._m_is_new_header
+
+            self._m_is_new_header =  ((self.magic0 == 255) and (self.magic1 == 255) and (self.magic2 == 255) and (self.magic3 == 255)) 
+            return getattr(self, '_m_is_new_header', None)
+
+        @property
+        def module_info_size(self):
+            if hasattr(self, '_m_module_info_size'):
+                return self._m_module_info_size
+
+            self._m_module_info_size = (self.new_header.module_info_size if self.is_new_header else self.old_header.module_info_size)
+            return getattr(self, '_m_module_info_size', None)
+
+        @property
+        def section_contribution_size(self):
+            if hasattr(self, '_m_section_contribution_size'):
+                return self._m_section_contribution_size
+
+            self._m_section_contribution_size = (self.new_header.section_contribution_size if self.is_new_header else self.old_header.section_contribution_size)
+            return getattr(self, '_m_section_contribution_size', None)
+
+        @property
+        def section_map_size(self):
+            if hasattr(self, '_m_section_map_size'):
+                return self._m_section_map_size
+
+            self._m_section_map_size = (self.new_header.section_map_size if self.is_new_header else self.old_header.section_map_size)
+            return getattr(self, '_m_section_map_size', None)
+
+        @property
+        def source_info_size(self):
+            if hasattr(self, '_m_source_info_size'):
+                return self._m_source_info_size
+
+            self._m_source_info_size = (self.new_header.source_info_size if self.is_new_header else self.old_header.source_info_size)
+            return getattr(self, '_m_source_info_size', None)
+
+        @property
+        def version_header(self):
+            if hasattr(self, '_m_version_header'):
+                return self._m_version_header
+
+            self._m_version_header = (self.new_header.version_header if self.is_new_header else 0)
+            return getattr(self, '_m_version_header', None)
 
 
     class ModuleInfoV50(KaitaiStruct):
@@ -152,6 +243,96 @@ class DbiStream(KaitaiStruct):
                 pass
                 self.entries[i]._fetch_instances()
 
+
+
+    class NewDebugInformationHeader(KaitaiStruct):
+        """DBIHdr (dbi.h)."""
+        def __init__(self, magic0, magic1, magic2, magic3, _io, _parent=None, _root=None):
+            super(DbiStream.NewDebugInformationHeader, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self.magic0 = magic0
+            self.magic1 = magic1
+            self.magic2 = magic2
+            self.magic3 = magic3
+            self._read()
+
+        def _read(self):
+            self.version_header = self._io.read_u4le()
+            self.age = self._io.read_u4le()
+            self.global_symbol_stream = self._io.read_u2le()
+            self.version_all = self._io.read_u2le()
+            self.public_symbol_stream = self._io.read_u2le()
+            self.version_pdb_dll_build = self._io.read_u2le()
+            self.symbol_record_stream = self._io.read_u2le()
+            self.version_pdb_dll_rbuild = self._io.read_u2le()
+            self.module_info_size = self._io.read_u4le()
+            self.section_contribution_size = self._io.read_u4le()
+            self.section_map_size = self._io.read_u4le()
+            self.source_info_size = self._io.read_u4le()
+            self.type_server_map_size = self._io.read_u4le()
+            self.mfc_type_server_stream = self._io.read_u4le()
+            self.size_debug_header = self._io.read_u4le()
+            self.ec_size = self._io.read_u4le()
+            self.flags = self._io.read_u2le()
+            self.machine = self._io.read_u2le()
+
+
+        def _fetch_instances(self):
+            pass
+
+        @property
+        def version_signature(self):
+            if hasattr(self, '_m_version_signature'):
+                return self._m_version_signature
+
+            self._m_version_signature = self.magic0 + 256 * (self.magic1 + 256 * (self.magic2 + 256 * self.magic3))
+            return getattr(self, '_m_version_signature', None)
+
+
+    class OldDebugInformationHeader(KaitaiStruct):
+        """OldDBIHdr (dbi.h)."""
+        def __init__(self, magic0, magic1, magic2, magic3, _io, _parent=None, _root=None):
+            super(DbiStream.OldDebugInformationHeader, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self.magic0 = magic0
+            self.magic1 = magic1
+            self.magic2 = magic2
+            self.magic3 = magic3
+            self._read()
+
+        def _read(self):
+            self.symbol_record_stream = self._io.read_u2le()
+            self.reserved1 = self._io.read_u2le()
+            if not self.reserved1 == 0:
+                raise kaitaistruct.ValidationNotEqualError(0, self.reserved1, self._io, u"/types/old_debug_information_header/seq/1")
+            self.module_info_size = self._io.read_u4le()
+            self.section_contribution_size = self._io.read_u4le()
+            self.section_map_size = self._io.read_u4le()
+            self.source_info_size = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
+
+        @property
+        def global_symbol_stream(self):
+            """snGSSyms."""
+            if hasattr(self, '_m_global_symbol_stream'):
+                return self._m_global_symbol_stream
+
+            self._m_global_symbol_stream = self.magic0 + 256 * self.magic1
+            return getattr(self, '_m_global_symbol_stream', None)
+
+        @property
+        def public_symbol_stream(self):
+            """snPSSyms."""
+            if hasattr(self, '_m_public_symbol_stream'):
+                return self._m_public_symbol_stream
+
+            self._m_public_symbol_stream = self.magic2 + 256 * self.magic3
+            return getattr(self, '_m_public_symbol_stream', None)
 
 
     class OmfSegMap(KaitaiStruct):
