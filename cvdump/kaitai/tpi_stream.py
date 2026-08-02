@@ -19,21 +19,18 @@ class TpiStream(KaitaiStruct):
 
     def _read(self):
         self.version = self._io.read_u4le()
-        if not self.version == 19951122:
-            raise kaitaistruct.ValidationNotEqualError(19951122, self.version, self._io, u"/seq/0")
-        self.ti_min = self._io.read_u2le()
-        self.ti_max = self._io.read_u2le()
-        self.bytes_count = self._io.read_u4le()
-        self.hash_value_stream = self._io.read_u2le()
-        self.padding = self._io.read_u2le()
+        if not  ((self.version == 19951122) or (self.version == 19961031)) :
+            raise kaitaistruct.ValidationNotAnyOfError(self.version, self._io, u"/seq/0")
+        self.header = TpiStream.TpiHeader(self.version, self._io, self, self._root)
         self.records = []
-        for i in range(self.ti_max - self.ti_min):
+        for i in range(self.header.ti_max - self.header.ti_min):
             self.records.append(TpiStream.Record(self._io, self, self._root))
 
 
 
     def _fetch_instances(self):
         pass
+        self.header._fetch_instances()
         for i in range(len(self.records)):
             pass
             self.records[i]._fetch_instances()
@@ -137,7 +134,7 @@ class TpiStream(KaitaiStruct):
                 self.element = TpiStream.LfBclass16St(self._io, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_enumerate_st:
                 pass
-                self.element = TpiStream.LfEnumerateSt(self._io, self, self._root)
+                self.element = TpiStream.LfEnumerateSt16t(self._io, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_ivbclass_16t:
                 pass
                 self.element = TpiStream.LfVbclass16t(self._io, self, self._root)
@@ -196,6 +193,108 @@ class TpiStream(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_vfunctab_16t:
+                pass
+                self.element._fetch_instances()
+
+
+    class FieldListItem(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.FieldListItem, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.type = KaitaiStream.resolve_enum(TpiStream.Leaf.LeafType, self._io.read_u2le())
+            _on = self.type
+            if _on == TpiStream.Leaf.LeafType.lf_bclass:
+                pass
+                self.element = TpiStream.LfBclass(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_binterface:
+                pass
+                self.element = TpiStream.LfBclass(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_enumerate_st:
+                pass
+                self.element = TpiStream.LfEnumerateSt(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_member:
+                pass
+                self.element = TpiStream.LfMember(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_member_st:
+                pass
+                self.element = TpiStream.LfMember(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_method:
+                pass
+                self.element = TpiStream.LfMethod(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_method_st:
+                pass
+                self.element = TpiStream.LfMethod(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_nesttype:
+                pass
+                self.element = TpiStream.LfNesttype(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_nesttype_st:
+                pass
+                self.element = TpiStream.LfNesttype(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_onemethod:
+                pass
+                self.element = TpiStream.LfOnemethod(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_onemethod_st:
+                pass
+                self.element = TpiStream.LfOnemethod(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_stmember:
+                pass
+                self.element = TpiStream.LfStmember(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_stmember_st:
+                pass
+                self.element = TpiStream.LfStmember(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_vfunctab:
+                pass
+                self.element = TpiStream.LfVfunctab(self._io, self, self._root)
+            self.trailing_padding = self._io.read_bytes((4 - self._io.pos() % 4) % 4)
+
+
+        def _fetch_instances(self):
+            pass
+            _on = self.type
+            if _on == TpiStream.Leaf.LeafType.lf_bclass:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_binterface:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_enumerate_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_member:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_member_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_method:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_method_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_nesttype:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_nesttype_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_onemethod:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_onemethod_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_stmember:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_stmember_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_vfunctab:
                 pass
                 self.element._fetch_instances()
 
@@ -382,71 +481,166 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.type = KaitaiStream.resolve_enum(TpiStream.Leaf.LeafType, self._io.read_u2le())
             _on = self.type
-            if _on == TpiStream.Leaf.LeafType.lf_arglist_16t:
+            if _on == TpiStream.Leaf.LeafType.lf_arglist:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfArglist(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_arglist_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfArglist16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_array:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfArray(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_array_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfArray16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_array_st:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfArray(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_bitfield:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfBitfield(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_bitfield_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfBitfield16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_class:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfClass(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_class_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfClass16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_class_st:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfClass(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_enum:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfEnum(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_enum_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfEnum16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_enum_st:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfEnum(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_fieldlist:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfFieldlist(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_fieldlist_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfFieldlist16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_interface:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfClass(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_methodlist:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfMethodlist(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_methodlist_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfMethodlist16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_mfunction:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfMfunction(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_mfunction_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfMfunction16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_modifier:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfModifier(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_modifier_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfModifier16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_pointer:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfPointer(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_pointer_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfPointer16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_procedure:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfProcedure(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_procedure_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfProcedure16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_structure:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfClass(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_structure_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfClass16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_structure_st:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfClass(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_union:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfUnion(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_union_16t:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfUnion16t(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_union_st:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfUnion(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_vtshape:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
@@ -460,43 +654,100 @@ class TpiStream(KaitaiStruct):
         def _fetch_instances(self):
             pass
             _on = self.type
-            if _on == TpiStream.Leaf.LeafType.lf_arglist_16t:
+            if _on == TpiStream.Leaf.LeafType.lf_arglist:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_arglist_16t:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_array:
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_array_16t:
                 pass
                 self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_array_st:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_bitfield:
+                pass
+                self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_bitfield_16t:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_class:
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_class_16t:
                 pass
                 self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_class_st:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_enum:
+                pass
+                self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_enum_16t:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_enum_st:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_fieldlist:
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_fieldlist_16t:
                 pass
                 self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_interface:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_methodlist:
+                pass
+                self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_methodlist_16t:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_mfunction:
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_mfunction_16t:
                 pass
                 self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_modifier:
+                pass
+                self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_modifier_16t:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_pointer:
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_pointer_16t:
                 pass
                 self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_procedure:
+                pass
+                self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_procedure_16t:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_structure:
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_structure_16t:
                 pass
                 self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_structure_st:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_union:
+                pass
+                self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_union_16t:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_union_st:
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_vtshape:
@@ -504,6 +755,29 @@ class TpiStream(KaitaiStruct):
                 self.body._fetch_instances()
             else:
                 pass
+
+
+    class LfArglist(KaitaiStruct):
+        """lfArgList (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfArglist, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.count = self._io.read_u4le()
+            self.args = []
+            for i in range(self.count):
+                self.args.append(self._io.read_u4le())
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.args)):
+                pass
+
 
 
     class LfArglist16t(KaitaiStruct):
@@ -529,6 +803,27 @@ class TpiStream(KaitaiStruct):
 
 
 
+    class LfArray(KaitaiStruct):
+        """lfArray (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfArray, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.elemtype = self._io.read_u4le()
+            self.idxtype = self._io.read_u4le()
+            self.length = TpiStream.Numeric(self._io, self, self._root)
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_array, self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.length._fetch_instances()
+            self.name._fetch_instances()
+
+
     class LfArray16t(KaitaiStruct):
         """lfArray_16t (cvinfo.h)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -550,6 +845,25 @@ class TpiStream(KaitaiStruct):
             self.name._fetch_instances()
 
 
+    class LfBclass(KaitaiStruct):
+        """lfBClass (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfBclass, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.attr = self._io.read_u2le()
+            self.index = self._io.read_u4le()
+            self.offset = TpiStream.Numeric(self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.offset._fetch_instances()
+
+
     class LfBclass16St(KaitaiStruct):
         """lfBClass_16t (cvinfo.h)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -567,6 +881,24 @@ class TpiStream(KaitaiStruct):
         def _fetch_instances(self):
             pass
             self.offset._fetch_instances()
+
+
+    class LfBitfield(KaitaiStruct):
+        """lfBitfield (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfBitfield, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.type = self._io.read_u4le()
+            self.length = self._io.read_u1()
+            self.position = self._io.read_u1()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class LfBitfield16t(KaitaiStruct):
@@ -587,6 +919,38 @@ class TpiStream(KaitaiStruct):
             pass
 
 
+    class LfClass(KaitaiStruct):
+        """lfClass (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfClass, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.count = self._io.read_u2le()
+            self.property = self._io.read_u2le()
+            self.field = self._io.read_u4le()
+            self.derived = self._io.read_u4le()
+            self.vshape = self._io.read_u4le()
+            self.size = TpiStream.Numeric(self._io, self, self._root)
+            self.name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
+            if self.property & 32 != 0:
+                pass
+                self.unique_name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
+
+
+
+        def _fetch_instances(self):
+            pass
+            self.size._fetch_instances()
+            self.name._fetch_instances()
+            if self.property & 32 != 0:
+                pass
+                self.unique_name._fetch_instances()
+
+
+
     class LfClass16t(KaitaiStruct):
         """lfClass_16t (cvinfo.h)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -602,10 +966,10 @@ class TpiStream(KaitaiStruct):
             self.derived = self._io.read_u2le()
             self.vshape = self._io.read_u2le()
             self.size = TpiStream.Numeric(self._io, self, self._root)
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
             if self.property & 32 != 0:
                 pass
-                self.unique_name = TpiStream.PascalString(self._io, self, self._root)
+                self.unique_name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
 
 
 
@@ -617,6 +981,27 @@ class TpiStream(KaitaiStruct):
                 pass
                 self.unique_name._fetch_instances()
 
+
+
+    class LfEnum(KaitaiStruct):
+        """lfEnum (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfEnum, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.count = self._io.read_u2le()
+            self.property = self._io.read_u2le()
+            self.utype = self._io.read_u4le()
+            self.field = self._io.read_u4le()
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_union, self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.name._fetch_instances()
 
 
     class LfEnum16t(KaitaiStruct):
@@ -651,6 +1036,26 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.attributes = self._io.read_u2le()
             self.value = TpiStream.Numeric(self._io, self, self._root)
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_enumerate, self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.value._fetch_instances()
+            self.name._fetch_instances()
+
+
+    class LfEnumerateSt16t(KaitaiStruct):
+        """lfEnumerate (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfEnumerateSt16t, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.attributes = self._io.read_u2le()
+            self.value = TpiStream.Numeric(self._io, self, self._root)
             self.name = TpiStream.PascalString(self._io, self, self._root)
 
 
@@ -658,6 +1063,30 @@ class TpiStream(KaitaiStruct):
             pass
             self.value._fetch_instances()
             self.name._fetch_instances()
+
+
+    class LfFieldlist(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfFieldlist, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.items = []
+            i = 0
+            while not self._io.is_eof():
+                self.items.append(TpiStream.FieldListItem(self._io, self, self._root))
+                i += 1
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.items)):
+                pass
+                self.items[i]._fetch_instances()
+
 
 
     class LfFieldlist16t(KaitaiStruct):
@@ -684,6 +1113,27 @@ class TpiStream(KaitaiStruct):
 
 
 
+    class LfMember(KaitaiStruct):
+        """lfMember."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfMember, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.attr = self._io.read_u2le()
+            self.index = self._io.read_u4le()
+            self.offset = TpiStream.Numeric(self._io, self, self._root)
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_member, self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.offset._fetch_instances()
+            self.name._fetch_instances()
+
+
     class LfMember16t(KaitaiStruct):
         """lfMember_16t."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -705,6 +1155,25 @@ class TpiStream(KaitaiStruct):
             self.name._fetch_instances()
 
 
+    class LfMethod(KaitaiStruct):
+        """lfMethod."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfMethod, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.count = self._io.read_u2le()
+            self.m_list = self._io.read_u4le()
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_method, self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.name._fetch_instances()
+
+
     class LfMethod16t(KaitaiStruct):
         """lfMethod_16t."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -722,6 +1191,31 @@ class TpiStream(KaitaiStruct):
         def _fetch_instances(self):
             pass
             self.name._fetch_instances()
+
+
+    class LfMethodlist(KaitaiStruct):
+        """lfMethodList (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfMethodlist, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.items = []
+            i = 0
+            while not self._io.is_eof():
+                self.items.append(TpiStream.LfMethodlistItem(self._io, self, self._root))
+                i += 1
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.items)):
+                pass
+                self.items[i]._fetch_instances()
+
 
 
     class LfMethodlist16t(KaitaiStruct):
@@ -750,7 +1244,7 @@ class TpiStream(KaitaiStruct):
 
 
     class LfMethodlist16tItem(KaitaiStruct):
-        """DumpTypRecC7 -> LF_METHODLIST_16t."""
+        """mlMethod_16t (DumpTypRecC7 -> LF_METHODLIST_16t)."""
         def __init__(self, _io, _parent=None, _root=None):
             super(TpiStream.LfMethodlist16tItem, self).__init__(_io)
             self._parent = _parent
@@ -759,7 +1253,7 @@ class TpiStream(KaitaiStruct):
 
         def _read(self):
             self.attr = self._io.read_u2le()
-            self.type = self._io.read_u2le()
+            self.index = self._io.read_u2le()
             if  ((self.attr >> 2 & 7 == 4) or (self.attr >> 2 & 7 == 6)) :
                 pass
                 self.vfptr_offset = self._io.read_u4le()
@@ -771,6 +1265,54 @@ class TpiStream(KaitaiStruct):
             if  ((self.attr >> 2 & 7 == 4) or (self.attr >> 2 & 7 == 6)) :
                 pass
 
+
+
+    class LfMethodlistItem(KaitaiStruct):
+        """mlMethod (DumpTypRecC7 -> LF_METHODLIST)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfMethodlistItem, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.attr = self._io.read_u2le()
+            self.pad0 = self._io.read_u2le()
+            self.index = self._io.read_u4le()
+            if  ((self.attr >> 2 & 7 == 4) or (self.attr >> 2 & 7 == 6)) :
+                pass
+                self.vfptr_offset = self._io.read_u4le()
+
+
+
+        def _fetch_instances(self):
+            pass
+            if  ((self.attr >> 2 & 7 == 4) or (self.attr >> 2 & 7 == 6)) :
+                pass
+
+
+
+    class LfMfunction(KaitaiStruct):
+        """lfMFunc_16t (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfMfunction, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.rvtype = self._io.read_u4le()
+            self.classtype = self._io.read_u4le()
+            self.thistype = self._io.read_u4le()
+            self.calltype = self._io.read_u1()
+            self.funcattr = self._io.read_u1()
+            self.parmcount = self._io.read_u2le()
+            self.arglist = self._io.read_u4le()
+            self.thisadjust = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class LfMfunction16t(KaitaiStruct):
@@ -796,6 +1338,23 @@ class TpiStream(KaitaiStruct):
             pass
 
 
+    class LfModifier(KaitaiStruct):
+        """lfModifier_16t (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfModifier, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.type = self._io.read_u4le()
+            self.attr = self._io.read_u2le()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class LfModifier16t(KaitaiStruct):
         """lfModifier_16t (cvinfo.h)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -813,6 +1372,25 @@ class TpiStream(KaitaiStruct):
             pass
 
 
+    class LfNesttype(KaitaiStruct):
+        """lfNestType."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfNesttype, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.pad0 = self._io.read_u2le()
+            self.index = self._io.read_u4le()
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_nesttype, self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.name._fetch_instances()
+
+
     class LfNesttype16t(KaitaiStruct):
         """lfNestType_16t."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -828,6 +1406,32 @@ class TpiStream(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+            self.name._fetch_instances()
+
+
+    class LfOnemethod(KaitaiStruct):
+        """lfOneMethod."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfOnemethod, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.attr = self._io.read_u2le()
+            self.index = self._io.read_u4le()
+            if  (((self.attr & 28) >> 2 == 4) or ((self.attr & 28) >> 2 == 6)) :
+                pass
+                self.vfptr_offset = self._io.read_u4le()
+
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_onemethod, self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            if  (((self.attr & 28) >> 2 == 4) or ((self.attr & 28) >> 2 == 6)) :
+                pass
+
             self.name._fetch_instances()
 
 
@@ -855,6 +1459,31 @@ class TpiStream(KaitaiStruct):
                 pass
 
             self.name._fetch_instances()
+
+
+    class LfPointer(KaitaiStruct):
+        """lfPointer (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfPointer, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.utype = self._io.read_u4le()
+            self.attr = self._io.read_u4le()
+            if  (((self.attr & 224) >> 5 == 2) or ((self.attr & 224) >> 5 == 3)) :
+                pass
+                self.pm = TpiStream.LfPointerPm(self._io, self, self._root)
+
+
+
+        def _fetch_instances(self):
+            pass
+            if  (((self.attr & 224) >> 5 == 2) or ((self.attr & 224) >> 5 == 3)) :
+                pass
+                self.pm._fetch_instances()
+
 
 
     class LfPointer16t(KaitaiStruct):
@@ -899,6 +1528,43 @@ class TpiStream(KaitaiStruct):
             pass
 
 
+    class LfPointerPm(KaitaiStruct):
+        """lfPointer.pbase.pm."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfPointerPm, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.pmclass = self._io.read_u4le()
+            self.pmenum = self._io.read_u2le()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class LfProcedure(KaitaiStruct):
+        """lfProc (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfProcedure, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.rvtype = self._io.read_u4le()
+            self.calltype = self._io.read_u1()
+            self.funcattr = self._io.read_u1()
+            self.parmcount = self._io.read_u2le()
+            self.arglist = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class LfProcedure16t(KaitaiStruct):
         """lfProc_16t (cvinfo.h)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -919,6 +1585,25 @@ class TpiStream(KaitaiStruct):
             pass
 
 
+    class LfStmember(KaitaiStruct):
+        """lfSTMember."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfStmember, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.attr = self._io.read_u2le()
+            self.index = self._io.read_u4le()
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_stmember, self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.name._fetch_instances()
+
+
     class LfStmember16t(KaitaiStruct):
         """lfSTMember_16t."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -935,6 +1620,28 @@ class TpiStream(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+            self.name._fetch_instances()
+
+
+    class LfUnion(KaitaiStruct):
+        """lfUnion (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfUnion, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.count = self._io.read_u2le()
+            self.property = self._io.read_u2le()
+            self.field = self._io.read_u4le()
+            self.size = TpiStream.Numeric(self._io, self, self._root)
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_union, self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.size._fetch_instances()
             self.name._fetch_instances()
 
 
@@ -980,6 +1687,23 @@ class TpiStream(KaitaiStruct):
             pass
             self.vbpoff._fetch_instances()
             self.vbind._fetch_instances()
+
+
+    class LfVfunctab(KaitaiStruct):
+        """lfVFuncTab."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfVfunctab, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.pad0 = self._io.read_u2le()
+            self.type = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class LfVfunctab16t(KaitaiStruct):
@@ -1203,6 +1927,23 @@ class TpiStream(KaitaiStruct):
 
 
 
+    class OffsetCount(KaitaiStruct):
+        """OffCb (tpi.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.OffsetCount, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.offset = self._io.read_u4le()
+            self.count = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class PascalString(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(TpiStream.PascalString, self).__init__(_io)
@@ -1238,6 +1979,143 @@ class TpiStream(KaitaiStruct):
             self.leaf._fetch_instances()
 
 
+    class TpiHeader(KaitaiStruct):
+        def __init__(self, version, _io, _parent=None, _root=None):
+            super(TpiStream.TpiHeader, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self.version = version
+            self._read()
+
+        def _read(self):
+            if self.use_16t:
+                pass
+                self.header_16t = TpiStream.TpiHeader16t(self._io, self, self._root)
+
+            if self.use_new:
+                pass
+                self.header_new = TpiStream.TpiHeaderNew(self._io, self, self._root)
+
+
+
+        def _fetch_instances(self):
+            pass
+            if self.use_16t:
+                pass
+                self.header_16t._fetch_instances()
+
+            if self.use_new:
+                pass
+                self.header_new._fetch_instances()
+
+
+        @property
+        def records_byte_size(self):
+            if hasattr(self, '_m_records_byte_size'):
+                return self._m_records_byte_size
+
+            self._m_records_byte_size = (self.header_16t.records_byte_size if self.use_16t else self.header_new.records_byte_size)
+            return getattr(self, '_m_records_byte_size', None)
+
+        @property
+        def ti_max(self):
+            if hasattr(self, '_m_ti_max'):
+                return self._m_ti_max
+
+            self._m_ti_max = (self.header_16t.ti_max if self.use_16t else self.header_new.ti_max)
+            return getattr(self, '_m_ti_max', None)
+
+        @property
+        def ti_min(self):
+            if hasattr(self, '_m_ti_min'):
+                return self._m_ti_min
+
+            self._m_ti_min = (self.header_16t.ti_min if self.use_16t else self.header_new.ti_min)
+            return getattr(self, '_m_ti_min', None)
+
+        @property
+        def use_16t(self):
+            if hasattr(self, '_m_use_16t'):
+                return self._m_use_16t
+
+            self._m_use_16t = self.version == 19951122
+            return getattr(self, '_m_use_16t', None)
+
+        @property
+        def use_new(self):
+            if hasattr(self, '_m_use_new'):
+                return self._m_use_new
+
+            self._m_use_new = self.version == 19961031
+            return getattr(self, '_m_use_new', None)
+
+
+    class TpiHeader16t(KaitaiStruct):
+        """HDR_16t (tpi.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.TpiHeader16t, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.ti_min = self._io.read_u2le()
+            self.ti_max = self._io.read_u2le()
+            self.records_byte_size = self._io.read_u4le()
+            self.hash_value_stream = self._io.read_u2le()
+            self.padding = self._io.read_u2le()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class TpiHeaderNew(KaitaiStruct):
+        """HDR (tpi.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.TpiHeaderNew, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.header_size = self._io.read_u4le()
+            self.ti_min = self._io.read_u4le()
+            self.ti_max = self._io.read_u4le()
+            self.records_byte_size = self._io.read_u4le()
+            self.hash_stream_schema = TpiStream.TpiHeaderNewHash(self._io, self, self._root)
+            self.padding = self._io.read_bytes(self.header_size - self._io.pos())
+
+
+        def _fetch_instances(self):
+            pass
+            self.hash_stream_schema._fetch_instances()
+
+
+    class TpiHeaderNewHash(KaitaiStruct):
+        """TpiHash (dbi.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.TpiHeaderNewHash, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.main_hash_stream = self._io.read_u2le()
+            self.auxiliary_hash_data_stream = self._io.read_u2le()
+            self.count_hash_buckets = self._io.read_u4le()
+            self.hash_values_location = TpiStream.OffsetCount(self._io, self, self._root)
+            self.ti_off_location = TpiStream.OffsetCount(self._io, self, self._root)
+            self.hash_adj_location = TpiStream.OffsetCount(self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            self.hash_values_location._fetch_instances()
+            self.ti_off_location._fetch_instances()
+            self.hash_adj_location._fetch_instances()
+
+
     class Varstring(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(TpiStream.Varstring, self).__init__(_io)
@@ -1252,6 +2130,44 @@ class TpiStream(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class ZeroTerminatedOrPascalString(KaitaiStruct):
+        def __init__(self, zero_terminated, _io, _parent=None, _root=None):
+            super(TpiStream.ZeroTerminatedOrPascalString, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self.zero_terminated = zero_terminated
+            self._read()
+
+        def _read(self):
+            if self.zero_terminated:
+                pass
+                self.text_zero_terminated = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+
+            if (not (self.zero_terminated)):
+                pass
+                self.text_pascal = TpiStream.PascalString(self._io, self, self._root)
+
+
+
+        def _fetch_instances(self):
+            pass
+            if self.zero_terminated:
+                pass
+
+            if (not (self.zero_terminated)):
+                pass
+                self.text_pascal._fetch_instances()
+
+
+        @property
+        def text(self):
+            if hasattr(self, '_m_text'):
+                return self._m_text
+
+            self._m_text = (self.text_zero_terminated if self.zero_terminated else self.text_pascal.text)
+            return getattr(self, '_m_text', None)
 
 
 

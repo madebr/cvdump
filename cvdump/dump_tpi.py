@@ -47,6 +47,20 @@ class Pointer16Attribute(enum.IntFlag): # lfPointer_16t.attr (cvinfo.h)
     ISUNALIGNED    = 0b0000100000000000     # TRUE if unaligned pointer
     UNUSED         = 0b1111000000000000
 
+class PointerAttribute(enum.IntFlag): # lfPointer.attr (cvinfo.h)
+    PTRTYPE        = 0b00000000000000000000000000011111     # ordinal specifying pointer type (CV_ptrtype_e)
+    PTRMODE        = 0b00000000000000000000000011100000     # ordinal specifying pointer mode (CV_ptrmode_e)
+    ISFLAT32       = 0b00000000000000000000000100000000     # true if 0:32 pointer
+    ISVOLATILE     = 0b00000000000000000000001000000000     # TRUE if volatile pointer
+    ISCONST        = 0b00000000000000000000010000000000     # TRUE if const pointer
+    ISUNALIGNED    = 0b00000000000000000000100000000000     # TRUE if unaligned pointer
+    ISRESTRICT     = 0b00000000000000000001000000000000     # TRUE if restricted pointer (allow agressive opts)
+    SIZE           = 0b00000000000001111110000000000000     # size of pointer (in bytes)
+    ISMOCOM        = 0b00000000000010000000000000000000     # TRUE if it is a MoCOM pointer (^ or %)
+    ISLREF         = 0b00000000000100000000000000000000     # TRUE if it is this pointer of member function with & ref-qualifier
+    ISRREF         = 0b00000000001000000000000000000000     # TRUE if it is this pointer of member function with & ref-qualifier
+    UNUSED         = 0b11111111110000000000000000000000
+
 # rgszCallConventionNames (type7.cpp)
 CALL_CONVENTION_NAMES = [
     "C Near",
@@ -77,7 +91,7 @@ CALL_CONVENTION_NAMES = [
 ]
 
 
-CLASS_ACCESS_ATTRIBUTE = [
+CLASS_ACCESS_ATTRIBUTE_NAMES = [
     "none",
     "private",
     "protected",
@@ -742,18 +756,18 @@ CLASS_FIELD_METHOD_PROP = [
 ]
 
 def print_class_field_attributes(attr, b: bool) -> None:
-    print(f"{CLASS_FIELD_ACCES_NAMES[attr & 0b11]}, ", end="")
+    print(f"{CLASS_FIELD_ACCES_NAMES[attr & ClassFieldAttribute.ACCESS.value]}, ", end="")
     if b:
         print(f"{CLASS_FIELD_METHOD_PROP[(attr & 0b11100) >> 2]}, ", end="")
-        if attr & 0b100000:
+        if attr & ClassFieldAttribute.PSEUDO.value:
             print("(pseudo), ", end="")
-        if attr & 0b100000000:
+        if attr & ClassFieldAttribute.COMPGENX.value:
             print("(compgenx), ", end="")
-        if attr & 0b1000000000:
+        if attr & ClassFieldAttribute.SEALED.value:
             print("(sealed), ", end="")
-    if attr & 0b1000000:
+    if attr & ClassFieldAttribute.NOINHERIT.value:
         print("(noinherit), ", end="")
-    if attr & 0b10000000:
+    if attr & ClassFieldAttribute.NOCONSTRUCT.value:
         print("(noconstruct), ", end="")
 
 
@@ -762,7 +776,7 @@ def dump_tpi(tpi: TpiStream):
     print("*** TYPES")
     print()
 
-    for tpi_id, record in enumerate(tpi.records, tpi.ti_min):
+    for tpi_id, record in enumerate(tpi.records, tpi.header.ti_min):
         print(f"0x{tpi_id:04x} : Length = {record.record_size}, Leaf = 0x{record.leaf.type:04x} {record.leaf.type.name.upper()}", end="")
         if record.record_size < 2:
             assert record.record_size >= 2
@@ -774,7 +788,7 @@ def dump_tpi(tpi: TpiStream):
                     match item.type:
                         case TpiStream.Leaf.LeafType.lf_enumerate_st:
                             print("LF_ENUMERATE, ", end="")  # print(f"{item.type.name.upper()}, ", end="") #
-                            print(f"{CLASS_ACCESS_ATTRIBUTE[item.element.attributes & ClassFieldAttribute.ACCESS]}, ", end="")
+                            print(f"{CLASS_ACCESS_ATTRIBUTE_NAMES[item.element.attributes & ClassFieldAttribute.ACCESS]}, ", end="")
                             if item.element.attributes & ClassFieldAttribute.NOINHERIT:
                                 print("(noinherit), ", end="")
                             if item.element.attributes & ClassFieldAttribute.NOCONSTRUCT:
@@ -814,8 +828,9 @@ def dump_tpi(tpi: TpiStream):
                         case TpiStream.Leaf.LeafType.lf_stmember_16t:
                             print("LF_STATICMEMBER_16t, ", end="")
                             print_class_field_attributes(item.element.attr, False)
+                            print(f"type = {get_c7_type_name(item.element.index)}", end="")
                             # FIXME: add new line
-                            print(f"\t\tmember name = {item.element.name.text}", end="")
+                            print(f"\t\tmember name = '{item.element.name.text}'", end="")
                             print()
                         case TpiStream.Leaf.LeafType.lf_vbclass_16t:
                             print("LF_VBCLASS_16t, ", end="")
@@ -837,7 +852,93 @@ def dump_tpi(tpi: TpiStream):
                             print()
                         case _:
                             raise ValueError(item.type)
+            case TpiStream.Leaf.LeafType.lf_fieldlist:
+                print()
+                for item_i, item in enumerate(record.leaf.body.items):
+                    print(f"\tlist[{item_i}] = ", end="")
+                    match item.type:
+                        case TpiStream.Leaf.LeafType.lf_enumerate_st | TpiStream.Leaf.LeafType.lf_enumerate_st:
+                            print("LF_ENUMERATE, ", end="")  # print(f"{item.type.name.upper()}, ", end="") #
+                            print(f"{CLASS_ACCESS_ATTRIBUTE_NAMES[item.element.attributes & ClassFieldAttribute.ACCESS]}, ", end="")
+                            if item.element.attributes & ClassFieldAttribute.NOINHERIT:
+                                print("(noinherit), ", end="")
+                            if item.element.attributes & ClassFieldAttribute.NOCONSTRUCT:
+                                print("(noconstruct), ", end="")
+                            print(f"value = {get_numeric_string(item.element.value)}, ", end="")
+                            print(f"name = '{item.element.name.text}'")
+                        case TpiStream.Leaf.LeafType.lf_bclass | TpiStream.Leaf.LeafType.lf_binterface:
+                            print("LF_BCLASS, " if item.type == TpiStream.Leaf.LeafType.lf_bclass else "LF_INTERFACE, ", end="")
+                            print_class_field_attributes(item.element.attr, False)
+                            print(f"type = {get_c7_type_name(item.element.index)}", end="")
+                            print(f", offset = {get_numeric_string(item.element.offset)}")
+                        case TpiStream.Leaf.LeafType.lf_nesttype | TpiStream.Leaf.LeafType.lf_nesttype_st:
+                            print("LF_NESTTYPE, ", end="")
+                            print(f"type = {get_c7_type_name(item.element.index)}, ", end="")
+                            print(item.element.name.text)
+                            if item.element.pad0 != 0:
+                                print("***Warning, pad bytes are non-zero!")
+                        case TpiStream.Leaf.LeafType.lf_method | TpiStream.Leaf.LeafType.lf_method_st:
+                            print("LF_METHOD, ", end="")
+                            print(f"count = {item.element.count}, ", end="")
+                            print(f"list = {get_c7_type_name(item.element.m_list)}, ", end="")
+                            print(f"name = '{item.element.name.text}'")
+                        case TpiStream.Leaf.LeafType.lf_onemethod | TpiStream.Leaf.LeafType.lf_onemethod_st:
+                            print("LF_ONEMETHOD, ", end="")
+                            print_class_field_attributes(item.element.attr, True)
+                            print(f"index = {get_c7_type_name(item.element.index)}, ", end="")
+                            if hasattr(item.element, "vfptr_offset"):
+                                print()
+                                print(f"\t\tvfptr offest = {item.element.vfptr_offset}, ", end="")
+                            print(f"name = '{item.element.name.text}'")
+                        case TpiStream.Leaf.LeafType.lf_member | TpiStream.Leaf.LeafType.lf_member_st:
+                            print("LF_MEMBER, ", end="")
+                            print_class_field_attributes(item.element.attr, False)
+                            print(f"type = {get_c7_type_name(item.element.index)}, ", end="")
+                            print(f"offset = {get_numeric_string(item.element.offset)}")
+                            print(f"\t\tmember name = '{item.element.name.text}'")
+                        case TpiStream.Leaf.LeafType.lf_vfunctab:
+                            print("LF_VFUNCTAB, ", end="")
+                            print(f"type = {get_c7_type_name(item.element.type)}")
+                        case TpiStream.Leaf.LeafType.lf_stmember | TpiStream.Leaf.LeafType.lf_stmember_st:
+                            print("LF_STATICMEMBER, ", end="")
+                            print_class_field_attributes(item.element.attr, False)
+                            print(f"type = {get_c7_type_name(item.element.index)}", end="")
+                            # FIXME: add new line
+                            print(f"\t\tmember name = '{item.element.name.text}'", end="")
+                            print()
+                        # case TpiStream.Leaf.LeafType.lf_vbclass:
+                        #     print("LF_VBCLASS, ", end="")
+                        #     print_class_field_attributes(item.element.attr, False)
+                        #     # FIXME: add new line
+                        #     print(f"direct base type = {get_c7_type_name(item.element.index)}")
+                        #     print(f"\t\tvirtual base ptr = {get_c7_type_name(item.element.vbptr)}, ", end="")
+                        #     print(f"vboff = {get_numeric_string(item.element.vbpoff)}, ", end="")
+                        #     print(f"vbind = {get_numeric_string(item.element.vbind)}", end="")
+                        #     print()
+                        # case TpiStream.Leaf.LeafType.lf_ivbclass_16t:
+                        #     print("LF_IVBCLASS_16t, ", end="")
+                        #     print_class_field_attributes(item.element.attr, False)
+                        #     # FIXME: add new line
+                        #     print(f"indirect base type = {get_c7_type_name(item.element.index)}")
+                        #     print(f"\t\tvirtual base ptr = {get_c7_type_name(item.element.vbptr)}, ", end="")
+                        #     print(f"vboff = {get_numeric_string(item.element.vbpoff)}, ", end="")
+                        #     print(f"vbind = {get_numeric_string(item.element.vbind)}", end="")
+                        #     print()
+                        case _:
+                            raise ValueError(item.type, repr(item.type))
             case TpiStream.Leaf.LeafType.lf_enum_16t:
+                print()
+                print(f"\t# members = {record.leaf.body.count}, ", end="")
+                print(f" type = {get_c7_type_name(record.leaf.body.utype)}", end="")
+                print(f" field list type 0x{record.leaf.body.field:04x}")
+                print_class_properties(record.leaf.body.property)
+                print(f"\tenum name = {record.leaf.body.name.text}", end="")
+                if supports_query_udt:
+                    udt = show_udt_type_id(record.leaf.body.name.text)
+                    if udt is not None:
+                        print(f", UDT(0x{udt:08x}", end="")
+                print()
+            case TpiStream.Leaf.LeafType.lf_enum | TpiStream.Leaf.LeafType.lf_enum_st:
                 print()
                 print(f"\t# members = {record.leaf.body.count}, ", end="")
                 print(f" type = {get_c7_type_name(record.leaf.body.utype)}", end="")
@@ -871,7 +972,37 @@ def dump_tpi(tpi: TpiStream):
                     if udt is not None:
                         print(f", UDT(0x{udt:08x}", end="")
                 print()
+            case TpiStream.Leaf.LeafType.lf_class_st | TpiStream.Leaf.LeafType.lf_structure_st | TpiStream.Leaf.LeafType.lf_class | TpiStream.Leaf.LeafType.lf_structure | TpiStream.Leaf.LeafType.lf_interface:
+                # match record.leaf.type:
+                #     case TpiStream.Leaf.LeafType.lf_class:
+                #         print("LF_CLASS\n", end="")
+                #     case TpiStream.Leaf.LeafType.lf_structure:
+                #         print("LF_STRUCTURE\n", end="")
+                #     case _:
+                #         print("LF_INTERFACE\n", end="")
+                print()
+                print(f"\t# members = {record.leaf.body.count}, ", end="")
+                print(f" field list type 0x{record.leaf.body.field:04x}, ", end="")
+                print_class_properties(record.leaf.body.property)
+                print()
+                print(f"\tDerivation list type 0x{record.leaf.body.derived:04x}, ", end="")
+                print(f"VT shape type 0x{record.leaf.body.vshape:04x}")
+                print(f"\tSize = {get_numeric_string(record.leaf.body.size)},", end="")
+                print(f" class name = {record.leaf.body.name.text}", end="")
+                if record.leaf.body.property & 0x20: # hasuniquename
+                    print(f", unique name = {record.leaf.body.unique_name.text}", end="")
+                if supports_query_udt:
+                    udt = show_udt_type_id(record.leaf.body.name.text)
+                    if udt is not None:
+                        print(f", UDT(0x{udt:08x}", end="")
+                print()
             case TpiStream.Leaf.LeafType.lf_array_16t:
+                print()
+                print(f"\tElement type = {get_c7_type_name(record.leaf.body.elemtype)}")
+                print(f"\tIndex type = {get_c7_type_name(record.leaf.body.idxtype)}")
+                print(f"\tlength = {get_numeric_string(record.leaf.body.length)}")
+                print(f"\tName = {record.leaf.body.name.text}")
+            case TpiStream.Leaf.LeafType.lf_array_st | TpiStream.Leaf.LeafType.lf_array:
                 print()
                 print(f"\tElement type = {get_c7_type_name(record.leaf.body.elemtype)}")
                 print(f"\tIndex type = {get_c7_type_name(record.leaf.body.idxtype)}")
@@ -881,7 +1012,18 @@ def dump_tpi(tpi: TpiStream):
                 print(f" argument count = {record.leaf.body.count}")
                 for arg_i, arg in enumerate(record.leaf.body.args):
                     print(f"\tlist[{arg_i}] = {get_c7_type_name(arg)}")
+            case TpiStream.Leaf.LeafType.lf_arglist:
+                print(f" argument count = {record.leaf.body.count}")
+                for arg_i, arg in enumerate(record.leaf.body.args):
+                    print(f"\tlist[{arg_i}] = {get_c7_type_name(arg)}")
             case TpiStream.Leaf.LeafType.lf_procedure_16t:
+                print()
+                print(f"\tReturn type = {get_c7_type_name(record.leaf.body.rvtype)}. ", end="")
+                print(f"Call type = {get_call_convention_name(record.leaf.body.calltype)}")
+                print(f"\tFunc attr = {get_function_attribute_name(record.leaf.body.funcattr)}")
+                print(f"\t# Parms = {record.leaf.body.parmcount}, ", end="")
+                print(f"Arg list type = 0x{record.leaf.body.arglist:x}")
+            case TpiStream.Leaf.LeafType.lf_procedure:
                 print()
                 print(f"\tReturn type = {get_c7_type_name(record.leaf.body.rvtype)}. ", end="")
                 print(f"Call type = {get_call_convention_name(record.leaf.body.calltype)}")
@@ -920,7 +1062,54 @@ def dump_tpi(tpi: TpiStream):
                         case PointerType.CV_PTR_BASE_TYPE:      raise NotImplementedError
                         case PointerType.CV_PTR_BASE_SELF:      raise NotImplementedError
                 print()
+            case TpiStream.Leaf.LeafType.lf_pointer:
+                print()
+                print("\t", end="")
+                if record.leaf.body.attr & PointerAttribute.ISVOLATILE:
+                    print("volatile ", end="")
+                if record.leaf.body.attr & PointerAttribute.ISCONST:
+                    print("const ", end="")
+                if record.leaf.body.attr & PointerAttribute.ISUNALIGNED:
+                    print("__unaligned ", end="")
+                if record.leaf.body.attr & PointerAttribute.ISRESTRICT:
+                    print("__restrict ", end="")
+                ptrmode = (record.leaf.body.attr & PointerAttribute.PTRMODE.value) >> 5
+                ptrtype = (record.leaf.body.attr & PointerAttribute.PTRTYPE.value) >> 0
+                print(f"{POINTER_MODE_NAMES[ptrmode]} ({POINTER_TYPE_NAMES[ptrtype]})", end="")
+                size = (record.leaf.body.attr & PointerAttribute.SIZE.value) >> 13
+                print(f", Size: {size}", end="")
+                if record.leaf.body.attr & PointerAttribute.ISFLAT32:
+                    print(" 16:32", end="")
+                if record.leaf.body.attr & PointerAttribute.ISMOCOM:
+                    print(" MoCOM", end="")
+                print()
+                print(f"\tElement type : {get_c7_type_name(record.leaf.body.utype)}", end="")
+                if ptrmode != 0:
+                    match ptrmode:
+                        case PointerMode.CV_PTR_MODE_PMEM | PointerMode.CV_PTR_MODE_PMFUNC:
+                            print(f", Containing class = {get_c7_type_name(record.leaf.body.pm.pmclass)}, ")
+                            print(f"\tType of pointer to member = {POINTER_TO_MEMBER_TYPE_NAMES[record.leaf.body.pm.pmenum]}", end="")
+                else:
+                    match PointerType(ptrtype):
+                        case PointerType.CV_PTR_BASE_SEG:       raise NotImplementedError
+                        case PointerType.CV_PTR_BASE_VAL:       raise NotImplementedError
+                        case PointerType.CV_PTR_BASE_SEGVAL:    raise NotImplementedError
+                        case PointerType.CV_PTR_BASE_ADDR:      raise NotImplementedError
+                        case PointerType.CV_PTR_BASE_SEGADDR:   raise NotImplementedError
+                        case PointerType.CV_PTR_BASE_TYPE:      raise NotImplementedError
+                        case PointerType.CV_PTR_BASE_SELF:      raise NotImplementedError
+                print()
             case TpiStream.Leaf.LeafType.lf_modifier_16t:
+                print()
+                print(f"\t", end="")
+                if record.leaf.body.attr & Modifier.MOD_const:
+                    print("const, ", end="")
+                if record.leaf.body.attr & Modifier.MOD_volatile:
+                    print("volatile, ", end="")
+                if record.leaf.body.attr & Modifier.MOD_unaligned:
+                    print("__unaligned, ", end="")
+                print(f"modifies type {get_c7_type_name(record.leaf.body.type)}")
+            case TpiStream.Leaf.LeafType.lf_modifier:
                 print()
                 print(f"\t", end="")
                 if record.leaf.body.attr & Modifier.MOD_const:
@@ -940,14 +1129,35 @@ def dump_tpi(tpi: TpiStream):
                 print(f"\tParms = {record.leaf.body.parmcount}, ", end="")
                 print(f"Arg list type = 0x{record.leaf.body.arglist:04x}, ", end="")
                 print(f"This adjust = {record.leaf.body.thisadjust:x}")
+            case TpiStream.Leaf.LeafType.lf_mfunction:
+                print()
+                print(f"\tReturn type = {get_c7_type_name(record.leaf.body.rvtype)}, ", end="")
+                print(f"Class type = {get_c7_type_name(record.leaf.body.classtype)}, ", end="")
+                print(f"This type = {get_c7_type_name(record.leaf.body.thistype)}, ")
+                print(f"\tCall type = {CALL_CONVENTION_NAMES[record.leaf.body.calltype]}, ", end="")
+                print(f"Func attr = {get_function_attribute_name(record.leaf.body.funcattr)}")
+                print(f"\tParms = {record.leaf.body.parmcount}, ", end="")
+                print(f"Arg list type = 0x{record.leaf.body.arglist:04x}, ", end="")
+                print(f"This adjust = {record.leaf.body.thisadjust:x}")
             case TpiStream.Leaf.LeafType.lf_methodlist_16t:
                 print()
                 for i, item in enumerate(record.leaf.body.items):
                     print(f"\tlist[{i}] = ", end="")
                     print_class_field_attributes(item.attr, True)
-                    print(f"{get_c7_type_name(item.type)}, ", end="")
+                    print(f"{get_c7_type_name(item.index)}, ", end="")
                     if hasattr(item, "vfptr_offset"):
                         print(f" vfptr offset = {item.vfptr_offset}", end="")
+                    print()
+            case TpiStream.Leaf.LeafType.lf_methodlist:
+                print()
+                for i, item in enumerate(record.leaf.body.items):
+                    print(f"\tlist[{i}] = ", end="")
+                    print_class_field_attributes(item.attr, True)
+                    print(f"{get_c7_type_name(item.index)}, ", end="")
+                    if hasattr(item, "vfptr_offset"):
+                        print(f" vfptr offset = {item.vfptr_offset}", end="")
+                    if item.pad0 != 0:
+                        print("***Warning, pad bytes are non-zero!")
                     print()
             case TpiStream.Leaf.LeafType.lf_vtshape:
                 print()
@@ -968,11 +1178,30 @@ def dump_tpi(tpi: TpiStream):
                     udt = show_udt_type_id(record.leaf.body.name.text)
                     if udt is not None:
                         print(f", UDT(0x{udt:08x}", end="")
+                print()
+            case TpiStream.Leaf.LeafType.lf_union | TpiStream.Leaf.LeafType.lf_union_st:
+                print()
+                print(f"\t# members = {record.leaf.body.count}, ", end="")
+                print(f" field list type 0x{record.leaf.body.field:04x}, ", end="")
+                print_class_properties(record.leaf.body.property)
+                print(f"Size = {get_numeric_string(record.leaf.body.size)}", end="")
+                # FIXME: missing newline + ugly whitespace around comma
+                print(f"\t,class name = {record.leaf.body.name.text}", end="")
+                if supports_query_udt:
+                    udt = show_udt_type_id(record.leaf.body.name.text)
+                    if udt is not None:
+                        print(f", UDT(0x{udt:08x}", end="")
+                print()
             case TpiStream.Leaf.LeafType.lf_bitfield_16t:
                 print()
                 print(f"\tbits = {record.leaf.body.length}, ", end="")
                 print(f"starting position = {record.leaf.body.position}", end="")
                 print(f", Type = {get_c7_type_name(record.leaf.body.type)}")
+            case TpiStream.Leaf.LeafType.lf_bitfield:
+                print()
+                print(f"\tbits = {record.leaf.body.length}, ", end="")
+                print(f"starting position = {record.leaf.body.position}", end="")
+                print(f", Type = {get_c7_type_name(record.leaf.body.type)}")
             case _:
-                raise ValueError(record.leaf.type)
+                raise ValueError(record.leaf.type, repr(record.leaf.type))
         print()

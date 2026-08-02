@@ -5,27 +5,108 @@ doc: HDR_16t (tpi.h)
 seq:
   - id: version
     type: u4
-    valid: 19951122  # We only support impv41 (used by 4.1 and 4.2)
-  - id: ti_min
-    type: u2
-    doc: lowest TI
-  - id: ti_max
-    type: u2
-    doc: highest TI + 1
-  - id: bytes_count
-    type: u4
-    doc: count of bytes used by the gprec which follows
-  - id: hash_value_stream
-    type: u2
-    doc: stream to hold hash values
-  - id: padding
-    type: u2
+    valid:
+      any-of: [19951122, 19961031]
+  - id: header
+    type: tpi_header(version)
   - id: records
     type: record
+#    size: header.records_byte_size
     repeat: expr
-    repeat-expr: ti_max - ti_min
+    repeat-expr: header.ti_max - header.ti_min
 
 types:
+  offset_count:
+    doc: OffCb (tpi.h)
+    seq:
+      - id: offset
+        type: u4
+      - id: count
+        type: u4
+
+  tpi_header_new_hash:
+    doc: TpiHash (dbi.h)
+    seq:
+      - id: main_hash_stream
+        type: u2
+        doc: 'sn: main hash stream'
+      - id: auxiliary_hash_data_stream
+        type: u2
+        doc: 'snPad: auxilliary hash data if necessary'
+      - id: count_hash_buckets
+        type: u4
+        doc: 'cHashBuckets: how many buckets we have'
+      - id: hash_values_location
+        type: offset_count
+        doc: 'offcbHashVals: offcb of hashvals'
+      - id: ti_off_location
+        type: offset_count
+        doc: 'offcb of (TI,OFF) pairs'
+      - id: hash_adj_location
+        type: offset_count
+        doc: 'offcb of hash head list, maps (hashval,ti), where ti is the head of the hashval chain'
+
+  tpi_header_new:
+    doc: HDR (tpi.h)
+    seq:
+      - id: header_size
+        type: u4
+        doc: 'cbHdr: size of the header, allows easier upgrading and backwards compatibility'
+      - id: ti_min
+        type: u4
+        doc: 'tiMin: lowest TI'
+      - id: ti_max
+        type: u4
+        doc: 'tiMac: highest TI + 1'
+      - id: records_byte_size
+        type: u4
+        doc: 'cbGprec: count of bytes used by the gprec which follows'
+      - id: hash_stream_schema
+        type: tpi_header_new_hash
+        doc: 'tpihash: hash stream schema'
+      - id: padding
+        size: header_size - _io.pos
+
+  tpi_header_16t:
+    doc: HDR_16t (tpi.h)
+    seq:
+    - id: ti_min
+      type: u2
+      doc: lowest TI
+    - id: ti_max
+      type: u2
+      doc: highest TI + 1
+    - id: records_byte_size
+      type: u4
+      doc: count of bytes used by the gprec which follows
+    - id: hash_value_stream
+      type: u2
+      doc: stream to hold hash values
+    - id: padding
+      type: u2
+
+  tpi_header:
+    params:
+      - id: version
+        type: u4
+    seq:
+      - id: header_16t
+        type: tpi_header_16t
+        if: use_16t
+      - id: header_new
+        type: tpi_header_new
+        if: use_new
+    instances:
+      use_16t:
+        value: version == 19951122
+      use_new:
+        value: version == 19961031
+      ti_min:
+        value: 'use_16t ? header_16t.ti_min : header_new.ti_min'
+      ti_max:
+        value: 'use_16t ? header_16t.ti_max : header_new.ti_max'
+      records_byte_size:
+        value: 'use_16t ? header_16t.records_byte_size : header_new.records_byte_size'
 
   record:
     seq:
@@ -46,19 +127,38 @@ types:
           switch-on: type
           cases:
             'leaf_type::lf_fieldlist_16t': lf_fieldlist_16t
+            'leaf_type::lf_fieldlist': lf_fieldlist
             'leaf::leaf_type::lf_enum_16t': lf_enum_16t
+            'leaf::leaf_type::lf_enum': lf_enum
+            'leaf::leaf_type::lf_enum_st': lf_enum
             'leaf::leaf_type::lf_structure_16t': lf_class_16t
             'leaf::leaf_type::lf_class_16t': lf_class_16t
             'leaf::leaf_type::lf_array_16t': lf_array_16t
             'leaf::leaf_type::lf_arglist_16t': lf_arglist_16t
+            'leaf::leaf_type::lf_arglist': lf_arglist
             'leaf::leaf_type::lf_procedure_16t': lf_procedure_16t
+            'leaf::leaf_type::lf_procedure': lf_procedure
             'leaf::leaf_type::lf_pointer_16t': lf_pointer_16t
             'leaf::leaf_type::lf_modifier_16t': lf_modifier_16t
+            'leaf::leaf_type::lf_modifier': lf_modifier
             'leaf::leaf_type::lf_mfunction_16t': lf_mfunction_16t
+            'leaf::leaf_type::lf_mfunction': lf_mfunction
             'leaf::leaf_type::lf_methodlist_16t': lf_methodlist_16t
+            'leaf::leaf_type::lf_methodlist': lf_methodlist
             'leaf::leaf_type::lf_vtshape': lf_vtshape
             'leaf::leaf_type::lf_union_16t': lf_union_16t
+            'leaf::leaf_type::lf_union': lf_union
+            'leaf::leaf_type::lf_union_st': lf_union
             'leaf::leaf_type::lf_bitfield_16t': lf_bitfield_16t
+            'leaf::leaf_type::lf_bitfield': lf_bitfield
+            'leaf::leaf_type::lf_array': lf_array
+            'leaf::leaf_type::lf_array_st': lf_array
+            'leaf::leaf_type::lf_class_st': lf_class
+            'leaf::leaf_type::lf_structure_st': lf_class
+            'leaf::leaf_type::lf_class': lf_class
+            'leaf::leaf_type::lf_structure': lf_class
+            'leaf::leaf_type::lf_interface': lf_class
+            'leaf::leaf_type::lf_pointer': lf_pointer
     enums:
       leaf_type:
         0x0001: lf_modifier_16t
@@ -266,7 +366,7 @@ types:
         type:
           switch-on: type
           cases:
-            'leaf::leaf_type::lf_enumerate_st': lf_enumerate_st
+            'leaf::leaf_type::lf_enumerate_st': lf_enumerate_st_16t
             'leaf::leaf_type::lf_bclass_16t': lf_bclass_16_st
             'leaf::leaf_type::lf_nesttype_16t': lf_nesttype_16t
             'leaf::leaf_type::lf_method_16t': lf_method_16t
@@ -278,7 +378,7 @@ types:
             'leaf::leaf_type::lf_ivbclass_16t': lf_vbclass_16t
       - id: trailing_padding
         size: (4 - (_io.pos % 4)) % 4
-  lf_enumerate_st:
+  lf_enumerate_st_16t:
     doc: lfEnumerate (cvinfo.h)
     seq:
       - id: attributes
@@ -371,6 +471,117 @@ types:
         type: numeric
         doc: virtual base offset from vbtable
 
+  lf_fieldlist:
+    seq:
+      - id: items
+        type: field_list_item
+        repeat: eos
+  field_list_item:
+    seq:
+      - id: type
+        type: u2
+        enum: leaf::leaf_type
+      - id: element
+        type:
+          switch-on: type
+          cases:
+            'leaf::leaf_type::lf_member': lf_member
+            'leaf::leaf_type::lf_member_st': lf_member
+            'leaf::leaf_type::lf_enumerate_st': lf_enumerate_st
+            'leaf::leaf_type::lf_bclass': lf_bclass
+            'leaf::leaf_type::lf_binterface': lf_bclass
+            'leaf::leaf_type::lf_onemethod': lf_onemethod
+            'leaf::leaf_type::lf_onemethod_st': lf_onemethod
+            'leaf::leaf_type::lf_method': lf_method
+            'leaf::leaf_type::lf_method_st': lf_method
+            'leaf::leaf_type::lf_nesttype': lf_nesttype
+            'leaf::leaf_type::lf_nesttype_st': lf_nesttype
+            'leaf::leaf_type::lf_vfunctab': lf_vfunctab
+            'leaf::leaf_type::lf_stmember': lf_stmember
+            'leaf::leaf_type::lf_stmember_st': lf_stmember
+#            'leaf::leaf_type::lf_vbclass': lf_vbclass
+#            'leaf::leaf_type::lf_ivbclass': lf_vbclass
+      - id: trailing_padding
+        size: (4 - (_io.pos % 4)) % 4
+
+  lf_enumerate_st:
+    doc: lfEnumerate (cvinfo.h)
+    seq:
+      - id: attributes
+        type: u2
+      - id: value
+        type: numeric
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_enumerate)
+  lf_member:
+    doc: lfMember
+    seq:
+      - id: attr
+        type: u2
+      - id: index
+        type: u4
+      - id: offset
+        type: numeric
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_member)
+  lf_bclass:
+    doc: lfBClass (cvinfo.h)
+    seq:
+      - id: attr
+        type: u2
+      - id: index
+        type: u4
+      - id: offset
+        type: numeric
+  lf_onemethod:
+    doc: lfOneMethod
+    seq:
+      - id: attr
+        type: u2
+      - id: index
+        type: u4
+      - id: vfptr_offset
+        if: ((attr & 0x1c) >> 2) == 4 or ((attr & 0x1c) >> 2) == 6
+        type: u4
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_onemethod)
+  lf_method:
+    doc: lfMethod
+    seq:
+      - id: count
+        type: u2
+      - id: m_list
+        type: u4
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_method)
+  lf_nesttype:
+    doc: lfNestType
+    seq:
+      - id: pad0
+        type: u2
+      - id: index
+        type: u4
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_nesttype)
+  lf_vfunctab:
+    doc: lfVFuncTab
+    seq:
+      - id: pad0
+        type: u2
+      - id: type
+        type: u4
+  lf_stmember:
+    doc: lfSTMember
+    seq:
+      - id: attr
+        type: u2
+        doc: attribute mask
+      - id: index
+        type: u4
+        doc: index of type record for field
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_stmember)
+
   lf_enum_16t:
     doc: lfEnum_16t (cvinfo.h)
     seq:
@@ -389,6 +600,24 @@ types:
       - id: name
         type: pascal_string
         doc: length prefixed name of enum
+  lf_enum:
+    doc: lfEnum (cvinfo.h)
+    seq:
+      - id: count
+        type: u2
+        doc: count of number of elements in class
+      - id: property
+        type: u2
+        doc: property attribute field
+      - id: utype
+        type: u4
+        doc: underlying type of the enum
+      - id: field
+        type: u4
+        doc: type index of LF_FIELD descriptor list
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_union)
+        doc: length prefixed name of enum
   lf_class_16t:
     doc: lfClass_16t (cvinfo.h)
     seq:
@@ -405,10 +634,10 @@ types:
       - id: size
         type: numeric
       - id: name
-        type: pascal_string
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
       - id: unique_name
         if: (property & 0x20) != 0
-        type: pascal_string
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
   lf_array_16t:
     doc: lfArray_16t (cvinfo.h)
     seq:
@@ -429,6 +658,15 @@ types:
         type: u2
         repeat: expr
         repeat-expr: count
+  lf_arglist:
+    doc: lfArgList (cvinfo.h)
+    seq:
+      - id: count
+        type: u4
+      - id: args
+        type: u4
+        repeat: expr
+        repeat-expr: count
   lf_procedure_16t:
     doc: lfProc_16t (cvinfo.h)
     seq:
@@ -442,6 +680,19 @@ types:
         type: u2
       - id: arglist
         type: u2
+  lf_procedure:
+    doc: lfProc (cvinfo.h)
+    seq:
+      - id: rvtype
+        type: u4
+      - id: calltype
+        type: u1
+      - id: funcattr
+        type: u1
+      - id: parmcount
+        type: u2
+      - id: arglist
+        type: u4
   lf_pointer_16t:
     doc: lfPointer_16t (cvinfo.h)
     seq:
@@ -471,6 +722,13 @@ types:
         type: u2
       - id: type
         type: u2
+  lf_modifier:
+    doc: lfModifier_16t (cvinfo.h)
+    seq:
+      - id: type
+        type: u4
+      - id: attr
+        type: u2
   lf_mfunction_16t:
     doc: lfMFunc_16t (cvinfo.h)
     seq:
@@ -498,27 +756,128 @@ types:
       - id: thisadjust
         type: u4
         doc: this adjuster (long because pad required anyway)
+  lf_mfunction:
+    doc: lfMFunc_16t (cvinfo.h)
+    seq:
+      - id: rvtype
+        type: u4
+        doc: type index of return value
+      - id: classtype
+        type: u4
+        doc: type index of containing class
+      - id: thistype
+        type: u4
+        doc: type index of this pointer (model specific)
+      - id: calltype
+        type: u1
+        doc: calling convention (call_t)
+      - id: funcattr
+        type: u1
+        doc: attributes
+      - id: parmcount
+        type: u2
+        doc: number of parameters
+      - id: arglist
+        type: u4
+        doc: type index of argument list
+      - id: thisadjust
+        type: u4
+        doc: this adjuster (long because pad required anyway)
   lf_methodlist_16t:
     doc: lfMethodList_16t (cvinfo.h)
     seq:
       - id: items
         type: lf_methodlist_16t_item
         repeat: eos
-
-
   lf_methodlist_16t_item:
-    doc: DumpTypRecC7 -> LF_METHODLIST_16t
+    doc: mlMethod_16t (DumpTypRecC7 -> LF_METHODLIST_16t)
     seq:
       - id: attr
         type: u2
         doc: CV_fldattr_t (cvinfo.h)
-      - id: type
+      - id: index
         type: u2
       - id: vfptr_offset
         type: u4
         if: ((attr >> 2) & 0x7) == 4 or ((attr >> 2) & 0x7) == 6
         doc: attr.mprop == CV_MTintro || attr.mprop == CV_MTpureintro
 
+  lf_methodlist:
+    doc: lfMethodList (cvinfo.h)
+    seq:
+      - id: items
+        type: lf_methodlist_item
+        repeat: eos
+  lf_methodlist_item:
+    doc: mlMethod (DumpTypRecC7 -> LF_METHODLIST)
+    seq:
+      - id: attr
+        type: u2
+        doc: CV_fldattr_t (cvinfo.h)
+      - id: pad0
+        type: u2
+        doc: internal padding, must be 0
+      - id: index
+        type: u4
+      - id: vfptr_offset
+        type: u4
+        if: ((attr >> 2) & 0x7) == 4 or ((attr >> 2) & 0x7) == 6
+        doc: attr.mprop == CV_MTintro || attr.mprop == CV_MTpureintro
+
+
+  lf_array:
+    doc: lfArray (cvinfo.h)
+    seq:
+      - id: elemtype
+        type: u4
+      - id: idxtype
+        type: u4
+      - id: length
+        type: numeric
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_array)
+  lf_class:
+    doc: lfClass (cvinfo.h)
+    seq:
+      - id: count
+        type: u2
+      - id: property
+        type: u2
+      - id: field
+        type: u4
+      - id: derived
+        type: u4
+      - id: vshape
+        type: u4
+      - id: size
+        type: numeric
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
+      - id: unique_name
+        if: (property & 0x20) != 0
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
+  lf_pointer:
+    doc: lfPointer (cvinfo.h)
+    seq:
+      - id: utype
+        type: u4
+        doc: type index of the underlying type
+      - id: attr
+        type: u4
+      - id: pm
+        type: lf_pointer_pm
+        doc: attr.ptrmode in (CV_PTR_MODE_PMEM, CV_PTR_MODE_PMFUNC)
+        if: ((attr & 0xe0) >> 5) == 2 or ((attr & 0xe0) >> 5) == 3
+      # FIXME: variable length data...
+  lf_pointer_pm:
+    doc: lfPointer.pbase.pm
+    seq:
+      - id: pmclass
+        type: u4
+        doc: index of containing class for pointer to member
+      - id: pmenum
+        type: u2
+        doc: enumeration specifying pm format (CV_pmtype_e)
   lf_vtshape:
     doc: lfVTShape (cvinfo.h)
     seq:
@@ -547,6 +906,22 @@ types:
         type: numeric
       - id: name
         type: pascal_string
+  lf_union:
+    doc: lfUnion (cvinfo.h)
+    seq:
+      - id: count
+        doc: count of number of elements in class
+        type: u2
+      - id: property
+        doc: property attribute field
+        type: u2
+      - id: field
+        doc: type index of LF_FIELD descriptor list
+        type: u4
+      - id: size
+        type: numeric
+      - id: name
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_union)
 
   lf_bitfield_16t:
     doc: lfBitfield_16t (cvinfo.h)
@@ -557,6 +932,15 @@ types:
         type: u1
       - id: type
         type: u2
+  lf_bitfield:
+    doc: lfBitfield (cvinfo.h)
+    seq:
+      - id: type
+        type: u4
+      - id: length
+        type: u1
+      - id: position
+        type: u1
 
   numeric:
     seq:
@@ -706,3 +1090,20 @@ types:
 #          tag == 0x800e ? complex80 :
 #          tag == 0x800f ? complex128 :
 #          u4_value
+
+  zero_terminated_or_pascal_string:
+    params:
+      - id: zero_terminated
+        type: bool
+    seq:
+      - id: text_zero_terminated
+        type: str
+        if: zero_terminated
+        encoding: ASCII
+        terminator: 0
+      - id: text_pascal
+        type: pascal_string
+        if: not zero_terminated
+    instances:
+      text:
+        value: 'zero_terminated ? text_zero_terminated : text_pascal.text'

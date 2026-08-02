@@ -5,7 +5,7 @@ seq:
   - id: header
     type: debug_information_header
   - id: module_info
-    type: module_infos_v50
+    type: 'module_infos(header.version_header)'
     size: header.module_info_size
   - id: section_contribution
     type: section_contribs_v40
@@ -188,51 +188,153 @@ types:
       - id: unknown2
         type: u2
 
+  section_contrib:
+    doc: struct SC (dbicommon.h)
+    seq:
+      - id: sc40
+        type: section_contrib_v40
+      - id: data_crc
+        type: u4
+        doc: 'dwDataCrc'
+      - id: reloc_crc
+        type: u4
+        doc: 'dwRelocCrc'
+    instances:
+      section_index:
+        value: sc40.section_index
+      padding:
+        value: sc40.padding
+      offset:
+        value: sc40.offset
+      size:
+        value: sc40.size
+      characteristics:
+        value: sc40.characteristics
+      module_index:
+        value: sc40.module_index
+
+
   section_contribs_v40:
     seq:
       - id: entries
         type: section_contrib_v40
         repeat: eos
 
-
   module_info_v50:
     doc: MODI50 (dbi.h)
     seq:
       - id: currently_open_mod
         type: u4
-        doc: unused
+        doc: 'pmod: unused / currently open mod'
       - id: section_contrib
         type: section_contrib_v40
+        doc: 'sc: this module''s first section contribution'
       - id: flags
         type: u2
+        doc: |
+          0x0001: fWritten (TRUE if mod has been written since DBI opened)
+          0x00fe: unused
+          0xff00: iTSM (index into TSM list for this mods server)
       - id: debug_info_stream
         type: u2
+        doc: 'sn:  SN of module debug info (syms, lines, fpo), or snNil'
       - id: symbols_size
         type: u4
+        doc: 'cbSyms: size of local symbols debug info in stream sn'
       - id: lines_size
         type: u4
+        doc: 'cbLines: size of line number debug info in stream sn'
       - id: frame_pointer_opt_size
         type: u4
+        doc: 'cbFpo: size of frame pointer opt debug info in stream sn'
       - id: source_file_count
         type: u2
+        doc: 'ifileMac: number of files contributing to this module'
       - id: unused
         type: u2
+        doc: 'padding'
       - id: source_filename_index
         type: u4
+        doc: 'mpifileichFile: array [0..ifileMac) of offsets into dbi.bufFilenames'
       - id: module_name
         type: strz
         encoding: ASCII
+        doc: 'rgch / szModule'
       - id: object_name
         type: strz
         encoding: ASCII
+        doc: 'rgch / szObjFile'
       - id: struct_padding
         size: (4 - (_io.pos % 4)) % 4
 
-  module_infos_v50:
+  module_info_v60:
+    doc: MODI_60_Persist (dbi.h)
     seq:
-      - id: entries
+      - id: currently_open_mod
+        type: u4
+        doc: 'pmod: unused / currently open mod'
+      - id: section_contrib
+        type: section_contrib
+        doc: 'sc: this module''s first section contribution'
+      - id: flags
+        type: u2
+        doc: |
+          0x0001: fWritten (TRUE if mod has been written since DBI opened)
+          0x0002: fWritten (TRUE if mod has EC symbolic information)
+          0x00fc: unused
+          0xff00: iTSM (index into TSM list for this mods server)
+      - id: debug_info_stream
+        type: u2
+        doc: 'sn:  SN of module debug info (syms, lines, fpo), or snNil'
+      - id: symbols_size
+        type: u4
+        doc: 'cbSyms: size of local symbols debug info in stream sn'
+      - id: lines_size
+        type: u4
+        doc: 'cbLines: size of line number debug info in stream sn'
+      - id: c13_line_number_info_size
+        type: u4
+        doc: 'cbC13Lines: size of C13 style line number info in stream sn'
+      - id: source_file_count
+        type: u2
+        doc: 'ifileMac: number of files contributing to this module'
+      - id: unused
+        type: u2
+        doc: 'padding'
+      - id: source_filename_index
+        type: u4
+        doc: 'mpifileichFile: array [0..ifileMac) of offsets into dbi.bufFilenames'
+      - id: module_name
+        type: strz
+        encoding: ASCII
+        doc: 'rgch / szModule'
+      - id: object_name
+        type: strz
+        encoding: ASCII
+        doc: 'rgch / szObjFile'
+      - id: struct_padding
+        size: (4 - (_io.pos % 4)) % 4
+
+  module_infos:
+    params:
+      - id: dbi_header_version
+        type: u4
+    seq:
+      - id: entries_v50
         type: module_info_v50
+        if: is_v50
         repeat: eos
+      - id: entries_v60
+        type: module_info_v60
+        if: is_v60
+        repeat: eos
+    instances:
+      entries:
+        value: 'is_v50 ? entries_v50 : entries_v60'
+      is_v50:
+        value: dbi_header_version <= 19970606
+      is_v60:
+        value: dbi_header_version > 19970606
 
   omf_seg_map:
     doc: OMFSegMap (cvexefmt.h)

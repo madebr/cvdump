@@ -19,7 +19,7 @@ class DbiStream(KaitaiStruct):
         self.header = DbiStream.DebugInformationHeader(self._io, self, self._root)
         self._raw_module_info = self._io.read_bytes(self.header.module_info_size)
         _io__raw_module_info = KaitaiStream(BytesIO(self._raw_module_info))
-        self.module_info = DbiStream.ModuleInfosV50(_io__raw_module_info, self, self._root)
+        self.module_info = DbiStream.ModuleInfos(self.header.version_header, _io__raw_module_info, self, self._root)
         self._raw_section_contribution = self._io.read_bytes(self.header.section_contribution_size)
         _io__raw_section_contribution = KaitaiStream(BytesIO(self._raw_section_contribution))
         self.section_contribution = DbiStream.SectionContribsV40(_io__raw_section_contribution, self, self._root)
@@ -221,28 +221,104 @@ class DbiStream(KaitaiStruct):
             self.section_contrib._fetch_instances()
 
 
-    class ModuleInfosV50(KaitaiStruct):
+    class ModuleInfoV60(KaitaiStruct):
+        """MODI_60_Persist (dbi.h)."""
         def __init__(self, _io, _parent=None, _root=None):
-            super(DbiStream.ModuleInfosV50, self).__init__(_io)
+            super(DbiStream.ModuleInfoV60, self).__init__(_io)
             self._parent = _parent
             self._root = _root
             self._read()
 
         def _read(self):
-            self.entries = []
-            i = 0
-            while not self._io.is_eof():
-                self.entries.append(DbiStream.ModuleInfoV50(self._io, self, self._root))
-                i += 1
+            self.currently_open_mod = self._io.read_u4le()
+            self.section_contrib = DbiStream.SectionContrib(self._io, self, self._root)
+            self.flags = self._io.read_u2le()
+            self.debug_info_stream = self._io.read_u2le()
+            self.symbols_size = self._io.read_u4le()
+            self.lines_size = self._io.read_u4le()
+            self.c13_line_number_info_size = self._io.read_u4le()
+            self.source_file_count = self._io.read_u2le()
+            self.unused = self._io.read_u2le()
+            self.source_filename_index = self._io.read_u4le()
+            self.module_name = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+            self.object_name = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+            self.struct_padding = self._io.read_bytes((4 - self._io.pos() % 4) % 4)
+
+
+        def _fetch_instances(self):
+            pass
+            self.section_contrib._fetch_instances()
+
+
+    class ModuleInfos(KaitaiStruct):
+        def __init__(self, dbi_header_version, _io, _parent=None, _root=None):
+            super(DbiStream.ModuleInfos, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self.dbi_header_version = dbi_header_version
+            self._read()
+
+        def _read(self):
+            if self.is_v50:
+                pass
+                self.entries_v50 = []
+                i = 0
+                while not self._io.is_eof():
+                    self.entries_v50.append(DbiStream.ModuleInfoV50(self._io, self, self._root))
+                    i += 1
+
+
+            if self.is_v60:
+                pass
+                self.entries_v60 = []
+                i = 0
+                while not self._io.is_eof():
+                    self.entries_v60.append(DbiStream.ModuleInfoV60(self._io, self, self._root))
+                    i += 1
+
 
 
 
         def _fetch_instances(self):
             pass
-            for i in range(len(self.entries)):
+            if self.is_v50:
                 pass
-                self.entries[i]._fetch_instances()
+                for i in range(len(self.entries_v50)):
+                    pass
+                    self.entries_v50[i]._fetch_instances()
 
+
+            if self.is_v60:
+                pass
+                for i in range(len(self.entries_v60)):
+                    pass
+                    self.entries_v60[i]._fetch_instances()
+
+
+
+        @property
+        def entries(self):
+            if hasattr(self, '_m_entries'):
+                return self._m_entries
+
+            self._m_entries = (self.entries_v50 if self.is_v50 else self.entries_v60)
+            return getattr(self, '_m_entries', None)
+
+        @property
+        def is_v50(self):
+            if hasattr(self, '_m_is_v50'):
+                return self._m_is_v50
+
+            self._m_is_v50 = self.dbi_header_version <= 19970606
+            return getattr(self, '_m_is_v50', None)
+
+        @property
+        def is_v60(self):
+            if hasattr(self, '_m_is_v60'):
+                return self._m_is_v60
+
+            self._m_is_v60 = self.dbi_header_version > 19970606
+            return getattr(self, '_m_is_v60', None)
 
 
     class NewDebugInformationHeader(KaitaiStruct):
@@ -381,6 +457,73 @@ class DbiStream(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class SectionContrib(KaitaiStruct):
+        """struct SC (dbicommon.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(DbiStream.SectionContrib, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.sc40 = DbiStream.SectionContribV40(self._io, self, self._root)
+            self.data_crc = self._io.read_u4le()
+            self.reloc_crc = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
+            self.sc40._fetch_instances()
+
+        @property
+        def characteristics(self):
+            if hasattr(self, '_m_characteristics'):
+                return self._m_characteristics
+
+            self._m_characteristics = self.sc40.characteristics
+            return getattr(self, '_m_characteristics', None)
+
+        @property
+        def module_index(self):
+            if hasattr(self, '_m_module_index'):
+                return self._m_module_index
+
+            self._m_module_index = self.sc40.module_index
+            return getattr(self, '_m_module_index', None)
+
+        @property
+        def offset(self):
+            if hasattr(self, '_m_offset'):
+                return self._m_offset
+
+            self._m_offset = self.sc40.offset
+            return getattr(self, '_m_offset', None)
+
+        @property
+        def padding(self):
+            if hasattr(self, '_m_padding'):
+                return self._m_padding
+
+            self._m_padding = self.sc40.padding
+            return getattr(self, '_m_padding', None)
+
+        @property
+        def section_index(self):
+            if hasattr(self, '_m_section_index'):
+                return self._m_section_index
+
+            self._m_section_index = self.sc40.section_index
+            return getattr(self, '_m_section_index', None)
+
+        @property
+        def size(self):
+            if hasattr(self, '_m_size'):
+                return self._m_size
+
+            self._m_size = self.sc40.size
+            return getattr(self, '_m_size', None)
 
 
     class SectionContribV40(KaitaiStruct):
