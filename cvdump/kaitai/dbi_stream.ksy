@@ -8,7 +8,7 @@ seq:
     type: 'module_infos(header.version_header)'
     size: header.module_info_size
   - id: section_contribution
-    type: section_contribs_v40
+    type: section_contribs(module_info.section_contrib_version)
     size: header.section_contribution_size
   - id: section_map
     type: omf_seg_map
@@ -29,28 +29,28 @@ types:
   debug_information_header:
     doc: OldDBIHdr / DBIHdr (dbi.h)
     seq:
-      - id: magic0
+      - id: magic_b0
         type: u1
-      - id: magic1
+      - id: magic_b1
         type: u1
-      - id: magic2
+      - id: magic_b2
         type: u1
-      - id: magic3
+      - id: magic_b3
         type: u1
       - id: new_header
-        type: 'new_debug_information_header(magic0, magic1, magic2, magic3)'
+        type: 'new_debug_information_header(magic_b0, magic_b1, magic_b2, magic_b3)'
         size: 60
         if: is_new_header
       - id: old_header
-        type: 'old_debug_information_header(magic0, magic1, magic2, magic3)'
+        type: 'old_debug_information_header(magic_b0, magic_b1, magic_b2, magic_b3)'
         if: not is_new_header
     instances:
       is_new_header:
-        value: 'magic0 == 0xff and magic1 == 0xff and magic2 == 0xff and magic3 == 0xff'
+        value: 'magic_b0 == 0xff and magic_b1 == 0xff and magic_b2 == 0xff and magic_b3 == 0xff'
       version_header:
         value: 'is_new_header ? new_header.version_header : 0'
       global_symbol_stream:
-        value: 'is_new_header ? new_header.global_symbol_stream : (magic0 + magic1 * 256)'
+        value: 'is_new_header ? new_header.global_symbol_stream : (magic_b0 + magic_b1 * 256)'
       module_info_size:
         value: 'is_new_header ? new_header.module_info_size : old_header.module_info_size'
       section_contribution_size:
@@ -111,15 +111,16 @@ types:
     seq:
       - id: version_header
         type: u4
+        doc: verHdr
       - id: age
         type: u4
-        doc: no. of times this instance has been updated
+        doc: 'verHdr: no. of times this instance has been updated'
       - id: global_symbol_stream
         type: u2
         doc: snGSSyms
       - id: version_all
         type: u2
-        doc: union of 2 version formats
+        doc: 'usVerAll / verold / vernew: union of 2 version formats'
       - id: public_symbol_stream
         type: u2
         doc: snPSSyms
@@ -149,13 +150,13 @@ types:
         doc: 'cbTSMap: size of the Type Server Map substream'
       - id: mfc_type_server_stream
         type: u4
-        doc: index of MFC type server
+        doc: 'iMFC: index of MFC type server'
       - id: size_debug_header
         type: u4
-        doc: size of optional DbgHdr info appended to the end of the stream
+        doc: 'cbDbgHdr: size of optional DbgHdr info appended to the end of the stream'
       - id: ec_size
         type: u4
-        doc: number of bytes in EC substream, or 0 if EC no EC enabled Mods
+        doc: 'cbECInfo: number of bytes in EC substream, or 0 if EC no EC enabled Mods'
       - id: flags
         type: u2
         doc: |
@@ -169,6 +170,22 @@ types:
       version_signature:
         value: magic0 + 256 * (magic1 + 256 * (magic2 + 256 * magic3))
 
+
+  section_contrib_v30:
+    doc: unsure about version, format used by Visual Studio 2.0 (cl 9.0)
+    seq:
+      - id: section_index
+        type: u2
+      - id: padding
+        type: u2  # (padding) Always 0xcbf for valid entries?
+      - id: offset
+        type: u4
+      - id: size
+        type: u4
+      - id: module_index
+        type: u2
+      - id: unknown2
+        type: u2
 
   section_contrib_v40:
     doc: struct SC40 (dbicommon.h)
@@ -188,8 +205,10 @@ types:
       - id: unknown2
         type: u2
 
-  section_contrib:
-    doc: struct SC (dbicommon.h)
+  section_contrib_v50:
+    doc: |
+      struct SC (dbicommon.h)
+      (v50 might be wrong)
     seq:
       - id: sc40
         type: section_contrib_v40
@@ -213,13 +232,29 @@ types:
       module_index:
         value: sc40.module_index
 
-
-  section_contribs_v40:
+  section_contribs:
+    params:
+      - id: section_contrib_version
+        type: u4
     seq:
-      - id: entries
+      - id: entries_v40
         type: section_contrib_v40
+        if: is_v40
         repeat: eos
-
+      - id: entries_v50_unk
+        type: u4
+        if: is_v50
+      - id: entries_v50
+        type: section_contrib_v50
+        if: is_v50
+        repeat: eos
+    instances:
+      is_v40:
+        value: 'section_contrib_version == 4 ? true : false'
+      is_v50:
+        value: 'section_contrib_version == 5 ? true : false'
+      entries:
+        value: 'is_v50 ? entries_v50 : (is_v40 ? entries_v40 : entries_v40)'
   module_info_v50:
     doc: MODI50 (dbi.h)
     seq:
@@ -267,14 +302,21 @@ types:
       - id: struct_padding
         size: (4 - (_io.pos % 4)) % 4
 
+  mod_info_v60_ecinfo:
+    seq:
+      - id: src_file_name_ni
+        type: u4
+      - id: path_compiler_pdb_ni
+        type: u4
+
   module_info_v60:
     doc: MODI_60_Persist (dbi.h)
     seq:
       - id: currently_open_mod
         type: u4
-        doc: 'pmod: unused / currently open mod'
+        doc: 'pmod: pointer to currently open module (only usable on 32-bit systems)'
       - id: section_contrib
-        type: section_contrib
+        type: section_contrib_v50
         doc: 'sc: this module''s first section contribution'
       - id: flags
         type: u2
@@ -285,7 +327,7 @@ types:
           0xff00: iTSM (index into TSM list for this mods server)
       - id: debug_info_stream
         type: u2
-        doc: 'sn:  SN of module debug info (syms, lines, fpo), or snNil'
+        doc: 'sn: SN of module debug info (syms, lines, fpo), or snNil'
       - id: symbols_size
         type: u4
         doc: 'cbSyms: size of local symbols debug info in stream sn'
@@ -304,6 +346,8 @@ types:
       - id: source_filename_index
         type: u4
         doc: 'mpifileichFile: array [0..ifileMac) of offsets into dbi.bufFilenames'
+      - id: ec_info
+        type: mod_info_v60_ecinfo
       - id: module_name
         type: strz
         encoding: ASCII
@@ -332,9 +376,11 @@ types:
       entries:
         value: 'is_v50 ? entries_v50 : entries_v60'
       is_v50:
-        value: dbi_header_version <= 19970606
+        value: dbi_header_version < 19970606
       is_v60:
-        value: dbi_header_version > 19970606
+        value: dbi_header_version >= 19970606
+      section_contrib_version:
+        value: 'is_v60 ? 5 : (is_v50 ? 4 : -1)'
 
   omf_seg_map:
     doc: OMFSegMap (cvexefmt.h)
@@ -370,8 +416,10 @@ types:
         type: u2
         doc: class name - index into sstSegName
       - id: offset
-        type: u4
+        type: u2
         doc: byte offset of the logical within the physical segment
+      - id: padding
+        type: u2
       - id: cb_seg
         type: u4
         doc: byte count of the logical segment or group

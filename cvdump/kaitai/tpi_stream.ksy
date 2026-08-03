@@ -6,7 +6,7 @@ seq:
   - id: version
     type: u4
     valid:
-      any-of: [19951122, 19961031]
+      any-of: [920924, 19951122, 19961031]
   - id: header
     type: tpi_header(version)
   - id: records
@@ -98,7 +98,7 @@ types:
         if: use_new
     instances:
       use_16t:
-        value: version == 19951122
+        value: version == 920924 or version == 19951122
       use_new:
         value: version == 19961031
       ti_min:
