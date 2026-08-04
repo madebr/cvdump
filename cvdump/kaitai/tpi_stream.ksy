@@ -6,7 +6,7 @@ seq:
   - id: version
     type: u4
     valid:
-      any-of: [920924, 19951122, 19961031]
+      any-of: [920924, 19951122, 19961031, 20040203]
   - id: header
     type: tpi_header(version)
   - id: records
@@ -100,7 +100,7 @@ types:
       use_16t:
         value: version == 920924 or version == 19951122
       use_new:
-        value: version == 19961031
+        value: version == 19961031 or version == 20040203
       ti_min:
         value: 'use_16t ? header_16t.ti_min : header_new.ti_min'
       ti_max:
@@ -376,6 +376,7 @@ types:
             'leaf::leaf_type::lf_stmember_16t': lf_stmember_16t
             'leaf::leaf_type::lf_vbclass_16t': lf_vbclass_16t
             'leaf::leaf_type::lf_ivbclass_16t': lf_vbclass_16t
+            'leaf::leaf_type::lf_index_16t': lf_index_16t
       - id: trailing_padding
         size: (4 - (_io.pos % 4)) % 4
   lf_enumerate_st_16t:
@@ -470,6 +471,11 @@ types:
       - id: vbind
         type: numeric
         doc: virtual base offset from vbtable
+  lf_index_16t:
+    doc: lfIndex_16t (cvinfo)
+    seq:
+      - id: index
+        type: u2
 
   lf_fieldlist:
     seq:
@@ -487,7 +493,8 @@ types:
           cases:
             'leaf::leaf_type::lf_member': lf_member
             'leaf::leaf_type::lf_member_st': lf_member
-            'leaf::leaf_type::lf_enumerate_st': lf_enumerate_st
+            'leaf::leaf_type::lf_enumerate': lf_enumerate
+            'leaf::leaf_type::lf_enumerate_st': lf_enumerate
             'leaf::leaf_type::lf_bclass': lf_bclass
             'leaf::leaf_type::lf_binterface': lf_bclass
             'leaf::leaf_type::lf_onemethod': lf_onemethod
@@ -499,12 +506,13 @@ types:
             'leaf::leaf_type::lf_vfunctab': lf_vfunctab
             'leaf::leaf_type::lf_stmember': lf_stmember
             'leaf::leaf_type::lf_stmember_st': lf_stmember
+            'leaf::leaf_type::lf_index': lf_index
 #            'leaf::leaf_type::lf_vbclass': lf_vbclass
 #            'leaf::leaf_type::lf_ivbclass': lf_vbclass
       - id: trailing_padding
         size: (4 - (_io.pos % 4)) % 4
 
-  lf_enumerate_st:
+  lf_enumerate:
     doc: lfEnumerate (cvinfo.h)
     seq:
       - id: attributes
@@ -581,6 +589,13 @@ types:
         doc: index of type record for field
       - id: name
         type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_stmember)
+  lf_index:
+    doc: lfIndex_16t (cvinfo)
+    seq:
+      - id: padding
+        type: u2
+      - id: index
+        type: u4
 
   lf_enum_16t:
     doc: lfEnum_16t (cvinfo.h)
@@ -616,7 +631,7 @@ types:
         type: u4
         doc: type index of LF_FIELD descriptor list
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_union)
+        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_enum)
         doc: length prefixed name of enum
   lf_class_16t:
     doc: lfClass_16t (cvinfo.h)
@@ -635,9 +650,9 @@ types:
         type: numeric
       - id: name
         type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
-      - id: unique_name
-        if: (property & 0x20) != 0
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
+#      - id: unique_name
+#        if: (property & 0x20) != 0
+#        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
   lf_array_16t:
     doc: lfArray_16t (cvinfo.h)
     seq:
@@ -854,7 +869,7 @@ types:
       - id: name
         type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
       - id: unique_name
-        if: (property & 0x20) != 0
+        if: (property & 0x200) != 0
         type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
   lf_pointer:
     doc: lfPointer (cvinfo.h)

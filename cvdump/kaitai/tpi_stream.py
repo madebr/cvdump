@@ -19,7 +19,7 @@ class TpiStream(KaitaiStruct):
 
     def _read(self):
         self.version = self._io.read_u4le()
-        if not  ((self.version == 920924) or (self.version == 19951122) or (self.version == 19961031)) :
+        if not  ((self.version == 920924) or (self.version == 19951122) or (self.version == 19961031) or (self.version == 20040203)) :
             raise kaitaistruct.ValidationNotAnyOfError(self.version, self._io, u"/seq/0")
         self.header = TpiStream.TpiHeader(self.version, self._io, self, self._root)
         self.records = []
@@ -135,6 +135,9 @@ class TpiStream(KaitaiStruct):
             elif _on == TpiStream.Leaf.LeafType.lf_enumerate_st:
                 pass
                 self.element = TpiStream.LfEnumerateSt16t(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_index_16t:
+                pass
+                self.element = TpiStream.LfIndex16t(self._io, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_ivbclass_16t:
                 pass
                 self.element = TpiStream.LfVbclass16t(self._io, self, self._root)
@@ -169,6 +172,9 @@ class TpiStream(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_enumerate_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_index_16t:
                 pass
                 self.element._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_ivbclass_16t:
@@ -213,9 +219,15 @@ class TpiStream(KaitaiStruct):
             elif _on == TpiStream.Leaf.LeafType.lf_binterface:
                 pass
                 self.element = TpiStream.LfBclass(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_enumerate:
+                pass
+                self.element = TpiStream.LfEnumerate(self._io, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_enumerate_st:
                 pass
-                self.element = TpiStream.LfEnumerateSt(self._io, self, self._root)
+                self.element = TpiStream.LfEnumerate(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_index:
+                pass
+                self.element = TpiStream.LfIndex(self._io, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_member:
                 pass
                 self.element = TpiStream.LfMember(self._io, self, self._root)
@@ -261,7 +273,13 @@ class TpiStream(KaitaiStruct):
             elif _on == TpiStream.Leaf.LeafType.lf_binterface:
                 pass
                 self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_enumerate:
+                pass
+                self.element._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_enumerate_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_index:
                 pass
                 self.element._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_member:
@@ -935,7 +953,7 @@ class TpiStream(KaitaiStruct):
             self.vshape = self._io.read_u4le()
             self.size = TpiStream.Numeric(self._io, self, self._root)
             self.name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
-            if self.property & 32 != 0:
+            if self.property & 512 != 0:
                 pass
                 self.unique_name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
 
@@ -945,7 +963,7 @@ class TpiStream(KaitaiStruct):
             pass
             self.size._fetch_instances()
             self.name._fetch_instances()
-            if self.property & 32 != 0:
+            if self.property & 512 != 0:
                 pass
                 self.unique_name._fetch_instances()
 
@@ -967,20 +985,12 @@ class TpiStream(KaitaiStruct):
             self.vshape = self._io.read_u2le()
             self.size = TpiStream.Numeric(self._io, self, self._root)
             self.name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
-            if self.property & 32 != 0:
-                pass
-                self.unique_name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
-
 
 
         def _fetch_instances(self):
             pass
             self.size._fetch_instances()
             self.name._fetch_instances()
-            if self.property & 32 != 0:
-                pass
-                self.unique_name._fetch_instances()
-
 
 
     class LfEnum(KaitaiStruct):
@@ -996,7 +1006,7 @@ class TpiStream(KaitaiStruct):
             self.property = self._io.read_u2le()
             self.utype = self._io.read_u4le()
             self.field = self._io.read_u4le()
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_union, self._io, self, self._root)
+            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_enum, self._io, self, self._root)
 
 
         def _fetch_instances(self):
@@ -1025,10 +1035,10 @@ class TpiStream(KaitaiStruct):
             self.name._fetch_instances()
 
 
-    class LfEnumerateSt(KaitaiStruct):
+    class LfEnumerate(KaitaiStruct):
         """lfEnumerate (cvinfo.h)."""
         def __init__(self, _io, _parent=None, _root=None):
-            super(TpiStream.LfEnumerateSt, self).__init__(_io)
+            super(TpiStream.LfEnumerate, self).__init__(_io)
             self._parent = _parent
             self._root = _root
             self._read()
@@ -1111,6 +1121,39 @@ class TpiStream(KaitaiStruct):
                 pass
                 self.items[i]._fetch_instances()
 
+
+
+    class LfIndex(KaitaiStruct):
+        """lfIndex_16t (cvinfo)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfIndex, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.padding = self._io.read_u2le()
+            self.index = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class LfIndex16t(KaitaiStruct):
+        """lfIndex_16t (cvinfo)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfIndex16t, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.index = self._io.read_u2le()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class LfMember(KaitaiStruct):
@@ -2046,7 +2089,7 @@ class TpiStream(KaitaiStruct):
             if hasattr(self, '_m_use_new'):
                 return self._m_use_new
 
-            self._m_use_new = self.version == 19961031
+            self._m_use_new =  ((self.version == 19961031) or (self.version == 20040203)) 
             return getattr(self, '_m_use_new', None)
 
 

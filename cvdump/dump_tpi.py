@@ -850,6 +850,9 @@ def dump_tpi(tpi: TpiStream):
                             print(f"vboff = {get_numeric_string(item.element.vbpoff)}, ", end="")
                             print(f"vbind = {get_numeric_string(item.element.vbind)}", end="")
                             print()
+                        case TpiStream.Leaf.LeafType.lf_index_16t:
+                            # print("LF_INDEX, ", end="")
+                            print(f"Type Index = {get_c7_type_name(item.element.index)}")
                         case _:
                             raise ValueError(item.type)
             case TpiStream.Leaf.LeafType.lf_fieldlist:
@@ -857,7 +860,7 @@ def dump_tpi(tpi: TpiStream):
                 for item_i, item in enumerate(record.leaf.body.items):
                     print(f"\tlist[{item_i}] = ", end="")
                     match item.type:
-                        case TpiStream.Leaf.LeafType.lf_enumerate_st | TpiStream.Leaf.LeafType.lf_enumerate_st:
+                        case TpiStream.Leaf.LeafType.lf_enumerate | TpiStream.Leaf.LeafType.lf_enumerate_st:
                             print("LF_ENUMERATE, ", end="")  # print(f"{item.type.name.upper()}, ", end="") #
                             print(f"{CLASS_ACCESS_ATTRIBUTE_NAMES[item.element.attributes & ClassFieldAttribute.ACCESS]}, ", end="")
                             if item.element.attributes & ClassFieldAttribute.NOINHERIT:
@@ -905,6 +908,12 @@ def dump_tpi(tpi: TpiStream):
                             print(f"type = {get_c7_type_name(item.element.index)}", end="")
                             # FIXME: add new line
                             print(f"\t\tmember name = '{item.element.name.text}'", end="")
+                            print()
+                        case TpiStream.Leaf.LeafType.lf_index:
+                            print("LF_INDEX, ", end="")
+                            print(f"Type Index = {get_c7_type_name(item.element.index)}")
+                            if item.element.padding != 0:
+                                print("***Warning, pad bytes are non-zero!")
                             print()
                         # case TpiStream.Leaf.LeafType.lf_vbclass:
                         #     print("LF_VBCLASS, ", end="")
@@ -965,8 +974,8 @@ def dump_tpi(tpi: TpiStream):
                 print(f"VT shape type 0x{record.leaf.body.vshape:04x}")
                 print(f"\tSize = {get_numeric_string(record.leaf.body.size)},", end="")
                 print(f" class name = {record.leaf.body.name.text}", end="")
-                if record.leaf.body.property & 0x20: # hasuniquename
-                    print(f", unique name = {record.leaf.body.unique_name.text}", end="")
+                # if record.leaf.body.property & 0x20: # hasuniquename
+                #     print(f", unique name = {record.leaf.body.unique_name.text}", end="")
                 if supports_query_udt:
                     udt = show_udt_type_id(record.leaf.body.name.text)
                     if udt is not None:
