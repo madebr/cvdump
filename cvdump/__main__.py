@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import itertools
 import pathlib
 import enum
 import uuid
@@ -28,14 +29,14 @@ def main():
         description="Dump PDB to stdout",
         allow_abbrev=False,
     )
+    parser.add_argument("--ls",  dest="list_streams", action="store_true", help="List MSF streams")
     parser.add_argument("--info",  dest="info", action="store_true", help="PDB Information")
     parser.add_argument("--names",  dest="names", action="store_true", help="Dump Names stream")
     parser.add_argument("--modules", "-m", dest="dump_modules", action="store_true", help="Dump modules")
     parser.add_argument("--seccontrib", dest="dump_seccontrib", action="store_true", help="Dump section contributions")
     parser.add_argument("--segment-map", "-x", dest="dump_segment_map", action="store_true", help="Dump segment map")
     parser.add_argument("--source-files", "-sf", dest="dump_source_files", action="store_true", help="Dump source files")
-    parser.add_argument("--types", "-t", dest="dump_types", action="store_true", help="Dump types")
-    parser.add_argument("--globals", "-g", dest="dump_globals", action="store_true", help="Dump globals")
+    parser.add_argument("--types", "-t", dest="dump_types", action="store_true", help="Dump IDs (IPI stream)")
     parser.add_argument("--create-zip", type=pathlib.Path, help="Write streams to zip")
     parser.add_argument("pdb_path", metavar="pdb", type=pathlib.Path, help="PDB path")
     args = parser.parse_args()
@@ -130,6 +131,18 @@ def main():
                     zip_entry_name = f"{i:0{w}d}.bin"
                     zf.writestr(zip_entry_name, msf_file.create_stream(i).read())
 
+        if args.list_streams:
+            print("*** MSF Stream info")
+            print("")
+            print(f"Block size = {msf_file.block_size} (0x{msf_file.block_size:x})")
+            for stream_index in range(len(msf_file.stream_sizes)):
+                print()
+                print(f"Stream {stream_index}:")
+                print(f"     size: {msf_file.stream_sizes[stream_index]} (0x{msf_file.stream_sizes[stream_index]:x})")
+                print(f"  indices:")#{' '.join(hex(b) for b in msf_file.stream_block_maps[stream_index])}")
+                for batch in itertools.batched((hex(b) for b in msf_file.stream_block_maps[stream_index]), 10):
+                    print("     ", " ".join(batch))
+
         if args.info:
             info = get_info()
             print()
@@ -211,13 +224,17 @@ def main():
 
         if args.dump_source_files:
             dbi = get_dbi()
-            # If this assertion fails, there are more then 0x10000 source files
-            # FIXME: calculate this in ksy description?
-            assert sum(dbi.source_info.module_file_counts) == dbi.source_info.count_source_files
 
             print()
             print("*** SOURCE FILES")
             print()
+
+            actual_count_source_files = sum(dbi.source_info.module_file_counts)
+            if actual_count_source_files != dbi.source_info.count_source_files:
+                print("* Total amount of sourc files truncated")
+                print()
+            # If this assertion fails, there are more then 0x10000 source files
+            assert actual_count_source_files == dbi.source_info.count_source_files, "current kaitai description does not support truncated source file count"
 
             start_name_index = 0
             for module_index in range(dbi.source_info.count_modules):
@@ -228,22 +245,27 @@ def main():
                     f"** Module: \"{module_data.module_name}\" from \"{module_data.object_name}\"")  # module_index, module_source_count)
                 print()
 
-                for j in range(dbi.source_info.module_file_counts[module_index]):
+                for j in range(module_source_count):
                     name_offset = dbi.source_info.file_name_offsets[start_name_index + j]
-                    # Pascal string
-                    len_string = dbi.source_info.buffer[name_offset]
-                    name = dbi.source_info.buffer[name_offset + 1:name_offset + 1 + len_string].decode("ascii")
-                    print(f"  {j:>4} {name} (None)")
-                if dbi.source_info.module_file_counts[module_index]:
+                    if dbi.header.is_new_header:
+                        end_name = dbi.source_info.buffer.find(b'\0', name_offset)
+                        if end_name == -1:
+                            end_name = None
+                        name = dbi.source_info.buffer[name_offset:end_name]
+                    else:
+                        # Pascal string
+                        len_string = dbi.source_info.buffer[name_offset]
+                        name = dbi.source_info.buffer[name_offset + 1:name_offset + 1 + len_string].decode("ascii")
+                    # FIXME: add hash instead of None.
+                    #        e.g. SHA_256: 991883893134C8ECBE6AF8335DF0781BFB779C11684B3367DEF514136241B866
+                    print(f"  {j:>4} {name.decode('ascii')} (None)")
+                if module_source_count:
                     print()
-                start_name_index += dbi.source_info.module_file_counts[module_index]
+                start_name_index += module_source_count
 
         if args.dump_types:
             dump_tpi(get_tpi())
 
-        if args.dump_globals:
-            gsi = get_gsi()
-            raise ValueError
 
 if __name__ == "__main__":
     raise SystemExit(main())
