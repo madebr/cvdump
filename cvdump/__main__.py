@@ -8,7 +8,7 @@ import enum
 import uuid
 import zipfile
 
-from cvdump.dump_tpi import dump_tpi
+from cvdump.dump_tpi import dump_ipi, dump_tpi
 from cvdump.msf import MsfFile
 from cvdump.kaitai.dbi_stream import DbiStream
 from cvdump.kaitai.tpi_stream import TpiStream
@@ -36,6 +36,7 @@ def main():
     parser.add_argument("--seccontrib", dest="dump_seccontrib", action="store_true", help="Dump section contributions")
     parser.add_argument("--segment-map", "-x", dest="dump_segment_map", action="store_true", help="Dump segment map")
     parser.add_argument("--source-files", "-sf", dest="dump_source_files", action="store_true", help="Dump source files")
+    parser.add_argument("-id", dest="dump_id", action="store_true", help="Dump types (TPI stream)")
     parser.add_argument("--types", "-t", dest="dump_types", action="store_true", help="Dump IDs (IPI stream)")
     parser.add_argument("--create-zip", type=pathlib.Path, help="Write streams to zip")
     parser.add_argument("pdb_path", metavar="pdb", type=pathlib.Path, help="PDB path")
@@ -52,6 +53,8 @@ def main():
         named_stream_map_initialized = False
         names = None
         names_initialized = False
+        name_index_to_name = None
+        name_offset_to_name = None
 
         def get_dbi() -> DbiStream:
             nonlocal dbi
@@ -63,6 +66,12 @@ def main():
             nonlocal tpi
             if not tpi:
                 tpi_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(MsfFile.TPI_STREAM_INDEX))
+                tpi = TpiStream(tpi_kaitai_stream)
+            return tpi
+        def get_ipi() -> TpiStream:
+            nonlocal tpi
+            if not tpi:
+                tpi_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(MsfFile.IPI_STREAM_INDEX))
                 tpi = TpiStream(tpi_kaitai_stream)
             return tpi
         def get_gsi() -> GsiStream:
@@ -123,6 +132,37 @@ def main():
                         names = NamesStream(names_kaitai_stream)
             names_initialized = True
             return names
+        def process_namemap() ->dict[int, str]:
+            nonlocal name_index_to_name
+            nonlocal name_offset_to_name
+            name_index_to_name = {}
+            name_offset_to_name = {}
+            names = get_names()
+            if names.hash_version == 1:
+                i = 0
+                string_start = 0
+                while string_start is not None:
+                    string_end = names.string_buffer.find(0, string_start)
+                    if string_end == -1:
+                        text = names.string_buffer[string_start:]
+                        next_string_start = None
+                    else:
+                        text = names.string_buffer[string_start:string_end]
+                        next_string_start = string_end + 1
+                    name_index_to_name[i] = text
+                    name_offset_to_name[string_start] = text
+                    string_start = next_string_start
+                    i += 1
+            else:
+                print(f"Unsupported names hash version ({names.hash_version}) (PLEASE SHARE THIS PDB!)")
+            return name_index_to_name
+
+        def get_name_offset_to_name() -> dict[int, str]:
+            nonlocal name_offset_to_name
+            if name_offset_to_name is None:
+                process_namemap()
+            return name_offset_to_name
+
 
         if args.create_zip:
             with zipfile.ZipFile(args.create_zip, "w") as zf:
@@ -149,7 +189,7 @@ def main():
             print("*** PDF INFORMATION:")
             print()
             print(f"  version: {info.version}")
-            print(f"     time: {datetime.datetime.fromtimestamp(info.timestamp).strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"     time: {datetime.datetime.fromtimestamp(info.timestamp).strftime('%Y-%m-%d %H:%M:%S')} (0x{info.timestamp:08x}")
             if hasattr(info, "contents_vc50"):
                 print("Stream map:")
                 for stream_name, stream_index in get_named_stream_map().items():
@@ -266,6 +306,8 @@ def main():
         if args.dump_types:
             dump_tpi(get_tpi())
 
+        if args.dump_id:
+            dump_ipi(get_ipi(), get_name_offset_to_name())
 
 if __name__ == "__main__":
     raise SystemExit(main())

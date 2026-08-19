@@ -708,6 +708,9 @@ def print_class_properties(props: int):
             case 3: print_props("INTERFACE")
 
 def get_c7_type_name(type_id: int) -> str:
+    """
+    SzNameC7Type
+    """
     if type_id >= 0x1000:
         if type_id > 0xffff:
             return f"0x{type_id:8X}"
@@ -775,6 +778,16 @@ def dump_tpi(tpi: TpiStream):
     print()
     print("*** TYPES")
     print()
+    dump_cvstream(tpi, None)
+
+
+def dump_ipi(tpi: TpiStream, name_offset_to_name: dict[int, str]):
+    print()
+    print("*** IDs")
+    print()
+    dump_cvstream(tpi, name_offset_to_name)
+
+def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
 
     for tpi_id, record in enumerate(tpi.records, tpi.header.ti_min):
         print(f"0x{tpi_id:04x} : Length = {record.record_size}, Leaf = 0x{record.leaf.type:04x} {record.leaf.type.name.upper()}", end="")
@@ -1019,11 +1032,11 @@ def dump_tpi(tpi: TpiStream):
                 print(f"\tName = {record.leaf.body.name.text}")
             case TpiStream.Leaf.LeafType.lf_arglist_16t:
                 print(f" argument count = {record.leaf.body.count}")
-                for arg_i, arg in enumerate(record.leaf.body.args):
+                for arg_i, arg in enumerate(record.leaf.body.arg):
                     print(f"\tlist[{arg_i}] = {get_c7_type_name(arg)}")
             case TpiStream.Leaf.LeafType.lf_arglist:
                 print(f" argument count = {record.leaf.body.count}")
-                for arg_i, arg in enumerate(record.leaf.body.args):
+                for arg_i, arg in enumerate(record.leaf.body.arg):
                     print(f"\tlist[{arg_i}] = {get_c7_type_name(arg)}")
             case TpiStream.Leaf.LeafType.lf_procedure_16t:
                 print()
@@ -1211,6 +1224,47 @@ def dump_tpi(tpi: TpiStream):
                 print(f"\tbits = {record.leaf.body.length}, ", end="")
                 print(f"starting position = {record.leaf.body.position}", end="")
                 print(f", Type = {get_c7_type_name(record.leaf.body.type)}")
+
+            # TPI
+            case TpiStream.Leaf.LeafType.lf_udt_mod_src_line:
+                print()
+                source_file = name_offset_to_name.get(record.leaf.body.src)
+                if source_file is None:
+                    print("Error no name")
+                else:
+                    print(f"\ttype = 0x{record.leaf.body.type:x}, mod={record.leaf.body.imod}, source file = {source_file}, line = {record.leaf.body.line}")
+            case TpiStream.Leaf.LeafType.lf_string_id:
+                print()
+                print(f"\t{record.leaf.body.name}")
+                if record.leaf.body.id:
+                    print(f"\tList of sub string ID's = {get_c7_type_name(record.leaf.body.id)}")
+                else:
+                    print("\tNo sub string ID")
+            case TpiStream.Leaf.LeafType.lf_substr_list:
+                print()
+                print(f"\tString ID's (count = {record.leaf.body.count}):", end="")
+                for i in range(record.leaf.body.count):
+                    print(f" {get_c7_type_name(record.leaf.body.arg[i])}", end="")
+                print()
+            case TpiStream.Leaf.LeafType.lf_buildinfo:
+                print()
+                print(f"\tString ID's (count = {record.leaf.body.count}):", end="")
+                for i in range(record.leaf.body.count):
+                    print(f" {get_c7_type_name(record.leaf.body.arg[i])}", end="")
+                print()
+            case TpiStream.Leaf.LeafType.lf_func_id:
+                print()
+                print(f"\tType = {get_c7_type_name(record.leaf.body.type)}\t", end="")
+                if record.leaf.body.scope_id == 0:
+                    print("\tScope = global\t", end="")
+                else:
+                    print(f"\tScope = {get_c7_type_name(record.leaf.body.scope_id)}\t", end="")
+                print(record.leaf.body.name)
+            case TpiStream.Leaf.LeafType.lf_mfunc_id:
+                print()
+                print(f"\tType = {get_c7_type_name(record.leaf.body.type)}\t", end="")
+                print(f"\tParent = {get_c7_type_name(record.leaf.body.parent_type)}\t", end="")
+                print(record.leaf.body.name)
             case _:
                 raise ValueError(record.leaf.type, repr(record.leaf.type))
         print()

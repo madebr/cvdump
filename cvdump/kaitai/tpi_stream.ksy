@@ -127,6 +127,7 @@ types:
         type:
           switch-on: type
           cases:
+            # TPI
             'leaf_type::lf_fieldlist_16t': lf_fieldlist_16t
             'leaf_type::lf_fieldlist': lf_fieldlist
             'leaf::leaf_type::lf_enum_16t': lf_enum_16t
@@ -160,6 +161,14 @@ types:
             'leaf::leaf_type::lf_structure': lf_class
             'leaf::leaf_type::lf_interface': lf_class
             'leaf::leaf_type::lf_pointer': lf_pointer
+
+            # IPI
+            'leaf::leaf_type::lf_udt_mod_src_line': lf_udt_mod_src_line
+            'leaf::leaf_type::lf_string_id': lf_string_id
+            'leaf::leaf_type::lf_substr_list': lf_arglist
+            'leaf::leaf_type::lf_buildinfo': lf_buildinfo
+            'leaf::leaf_type::lf_func_id': lf_func_id
+            'leaf::leaf_type::lf_mfunc_id': lf_mfunc_id
     enums:
       leaf_type:
         0x0001: lf_modifier_16t
@@ -670,7 +679,7 @@ types:
     seq:
       - id: count
         type: u2
-      - id: args
+      - id: arg
         type: u2
         repeat: expr
         repeat-expr: count
@@ -679,7 +688,7 @@ types:
     seq:
       - id: count
         type: u4
-      - id: args
+      - id: arg
         type: u4
         repeat: expr
         repeat-expr: count
@@ -957,6 +966,66 @@ types:
         type: u1
       - id: position
         type: u1
+
+  # IPI
+  lf_udt_mod_src_line:
+    doc: lfUdtModSrcLine (cvinfo.h)
+    seq:
+      - id: type
+        type: u4
+        doc: UDT's type index
+      - id: src
+        type: u4
+        doc: index into string table where source file name is saved
+      - id: line
+        type: u4
+        doc: line number
+      - id: imod
+        type: u2
+        doc: module that contributes this UDT definition
+  lf_string_id:
+    doc: lfStringId (cvinfo.h)
+    seq:
+      - id: id
+        type: u4
+      - id: name
+        type: strz
+        encoding: ASCII
+  lf_buildinfo:
+    doc: lfBuildInfo (cvinfo.h)
+    seq:
+      - id: count
+        type: u2
+        doc: number of arugments
+      - id: arg
+        type: u4
+        repeat: expr
+        repeat-expr: count
+  lf_func_id:
+    doc: lfFuncId (cvinfo.h)
+    seq:
+      - id: scope_id
+        type: u4
+        doc: parent scope of the ID, 0 if global
+      - id: type
+        type: u4
+        doc: function type
+      - id: name
+        type: strz
+        encoding: ASCII
+  lf_mfunc_id:
+    doc: lfMFuncId (cvinfo.h)
+    seq:
+      - id: parent_type
+        type: u4
+        doc: type index of parent
+      - id: type
+        type: u4
+        doc: function type
+      - id: name
+        type: strz
+        encoding: ASCII
+
 
   numeric:
     seq:
