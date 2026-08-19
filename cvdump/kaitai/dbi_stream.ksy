@@ -59,6 +59,8 @@ types:
         value: 'is_new_header ? new_header.section_map_size : old_header.section_map_size'
       source_info_size:
         value: 'is_new_header ? new_header.source_info_size : old_header.source_info_size'
+      symbol_record_stream:
+        value: 'is_new_header ? new_header.symbol_record_stream : old_header.symbol_record_stream'
   old_debug_information_header:
     doc: OldDBIHdr (dbi.h)
     params:

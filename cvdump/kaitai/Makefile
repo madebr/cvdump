@@ -4,6 +4,8 @@ KSC_FLAGS := -t python
 
 SCHEMAS := \
     msf.ksy \
+    info_stream.ksy \
+    names_stream.ksy \
     dbi_stream.ksy \
     tpi_stream.ksy
 

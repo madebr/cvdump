@@ -184,6 +184,14 @@ class DbiStream(KaitaiStruct):
             return getattr(self, '_m_source_info_size', None)
 
         @property
+        def symbol_record_stream(self):
+            if hasattr(self, '_m_symbol_record_stream'):
+                return self._m_symbol_record_stream
+
+            self._m_symbol_record_stream = (self.new_header.symbol_record_stream if self.is_new_header else self.old_header.symbol_record_stream)
+            return getattr(self, '_m_symbol_record_stream', None)
+
+        @property
         def version_header(self):
             if hasattr(self, '_m_version_header'):
                 return self._m_version_header

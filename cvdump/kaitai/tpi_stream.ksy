@@ -16,74 +16,6 @@ seq:
     repeat-expr: header.ti_max - header.ti_min
 
 types:
-  offset_count:
-    doc: OffCb (tpi.h)
-    seq:
-      - id: offset
-        type: u4
-      - id: count
-        type: u4
-
-  tpi_header_new_hash:
-    doc: TpiHash (dbi.h)
-    seq:
-      - id: main_hash_stream
-        type: u2
-        doc: 'sn: main hash stream'
-      - id: auxiliary_hash_data_stream
-        type: u2
-        doc: 'snPad: auxilliary hash data if necessary'
-      - id: count_hash_buckets
-        type: u4
-        doc: 'cHashBuckets: how many buckets we have'
-      - id: hash_values_location
-        type: offset_count
-        doc: 'offcbHashVals: offcb of hashvals'
-      - id: ti_off_location
-        type: offset_count
-        doc: 'offcb of (TI,OFF) pairs'
-      - id: hash_adj_location
-        type: offset_count
-        doc: 'offcb of hash head list, maps (hashval,ti), where ti is the head of the hashval chain'
-
-  tpi_header_new:
-    doc: HDR (tpi.h)
-    seq:
-      - id: header_size
-        type: u4
-        doc: 'cbHdr: size of the header, allows easier upgrading and backwards compatibility'
-      - id: ti_min
-        type: u4
-        doc: 'tiMin: lowest TI'
-      - id: ti_max
-        type: u4
-        doc: 'tiMac: highest TI + 1'
-      - id: records_byte_size
-        type: u4
-        doc: 'cbGprec: count of bytes used by the gprec which follows'
-      - id: hash_stream_schema
-        type: tpi_header_new_hash
-        doc: 'tpihash: hash stream schema'
-      - id: padding
-        size: header_size - _io.pos
-
-  tpi_header_16t:
-    doc: HDR_16t (tpi.h)
-    seq:
-    - id: ti_min
-      type: u2
-      doc: lowest TI
-    - id: ti_max
-      type: u2
-      doc: highest TI + 1
-    - id: records_byte_size
-      type: u4
-      doc: count of bytes used by the gprec which follows
-    - id: hash_value_stream
-      type: u2
-      doc: stream to hold hash values
-    - id: padding
-      type: u2
 
   tpi_header:
     params:
@@ -107,6 +39,75 @@ types:
         value: 'use_16t ? header_16t.ti_max : header_new.ti_max'
       records_byte_size:
         value: 'use_16t ? header_16t.records_byte_size : header_new.records_byte_size'
+
+  tpi_header_16t:
+    doc: HDR_16t (tpi.h)
+    seq:
+    - id: ti_min
+      type: u2
+      doc: lowest TI
+    - id: ti_max
+      type: u2
+      doc: highest TI + 1
+    - id: records_byte_size
+      type: u4
+      doc: count of bytes used by the gprec which follows
+    - id: hash_value_stream
+      type: u2
+      doc: stream to hold hash values
+    - id: padding
+      type: u2
+
+  tpi_header_new:
+    doc: HDR (tpi.h)
+    seq:
+      - id: header_size
+        type: u4
+        doc: 'cbHdr: size of the header, allows easier upgrading and backwards compatibility'
+      - id: ti_min
+        type: u4
+        doc: 'tiMin: lowest TI'
+      - id: ti_max
+        type: u4
+        doc: 'tiMac: highest TI + 1'
+      - id: records_byte_size
+        type: u4
+        doc: 'cbGprec: count of bytes used by the gprec which follows'
+      - id: hash_stream_schema
+        type: tpi_header_new_hash
+        doc: 'tpihash: hash stream schema'
+      - id: padding
+        size: header_size - _io.pos
+
+  tpi_header_new_hash:
+    doc: TpiHash (dbi.h)
+    seq:
+      - id: main_hash_stream
+        type: u2
+        doc: 'sn: main hash stream'
+      - id: auxiliary_hash_data_stream
+        type: u2
+        doc: 'snPad: auxiliary hash data if necessary'
+      - id: count_hash_buckets
+        type: u4
+        doc: 'cHashBuckets: how many buckets we have'
+      - id: hash_values_location
+        type: offset_count
+        doc: 'offcbHashVals: offcb of hashvals'
+      - id: ti_off_location
+        type: offset_count
+        doc: 'offcb of (TI,OFF) pairs'
+      - id: hash_adj_location
+        type: offset_count
+        doc: 'offcb of hash head list, maps (hashval,ti), where ti is the head of the hashval chain'
+
+  offset_count:
+    doc: OffCb (tpi.h)
+    seq:
+      - id: offset
+        type: u4
+      - id: count
+        type: u4
 
   record:
     seq:
