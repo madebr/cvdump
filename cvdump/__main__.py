@@ -9,11 +9,14 @@ import uuid
 import zipfile
 
 from cvdump.dump_tpi import dump_ipi, dump_tpi
+from cvdump.dump_symbol import dump_symbol
+from cvdump.machine import Machine
 from cvdump.msf import MsfFile
 from cvdump.kaitai.dbi_stream import DbiStream
-from cvdump.kaitai.tpi_stream import TpiStream
 from cvdump.kaitai.info_stream import InfoStream
+from cvdump.kaitai.modi_stream import ModiStream
 from cvdump.kaitai.names_stream import NamesStream
+from cvdump.kaitai.tpi_stream import TpiStream
 
 import kaitaistruct
 
@@ -38,6 +41,7 @@ def main():
     parser.add_argument("--source-files", "-sf", dest="dump_source_files", action="store_true", help="Dump source files")
     parser.add_argument("-id", dest="dump_id", action="store_true", help="Dump types (TPI stream)")
     parser.add_argument("--types", "-t", dest="dump_types", action="store_true", help="Dump IDs (IPI stream)")
+    parser.add_argument("--symbols", "-s", dest="dump_symbols", action="store_true", help="Dump symbols")
     parser.add_argument("--create-zip", type=pathlib.Path, help="Write streams to zip")
     parser.add_argument("pdb_path", metavar="pdb", type=pathlib.Path, help="PDB path")
     args = parser.parse_args()
@@ -55,6 +59,8 @@ def main():
         names_initialized = False
         name_index_to_name = None
         name_offset_to_name = None
+        module_streams = {}
+        machine = None
 
         def get_dbi() -> DbiStream:
             nonlocal dbi
@@ -74,14 +80,17 @@ def main():
                 tpi_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(MsfFile.IPI_STREAM_INDEX))
                 tpi = TpiStream(tpi_kaitai_stream)
             return tpi
-        def get_gsi() -> GsiStream:
-            nonlocal gsi
-            if not gsi:
-                dbi = get_dbi()
-                # sym_rec_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.global_symbol_stream))
-                gsi_taikai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.global_symbol_stream))
-                gsi = GsiStream(gsi_taikai_stream)
-            return gsi
+        # def get_gsi() -> GsiStream:
+        #     nonlocal gsi
+        #     if not gsi:
+        #         dbi = get_dbi()
+        #         gsi = dbi.header.global_symbol_stream
+        #         print(f"{gsi=}")
+        #         # dbi = get_dbi()
+        #         # # sym_rec_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.global_symbol_stream))
+        #         # gsi_taikai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.global_symbol_stream))
+        #         # gsi = GsiStream(gsi_taikai_stream)
+        #     return gsi
         def get_info() -> InfoStream:
             nonlocal info
             if not info:
@@ -163,7 +172,25 @@ def main():
                 process_namemap()
             return name_offset_to_name
 
-
+        def get_module_stream(module_index: int) -> ModiStream:
+            nonlocal module_streams
+            if module_index not in module_streams:
+                dbi = get_dbi()
+                dbi_module_info_entry = dbi.module_info.entries[module_index]
+                stream_index = dbi_module_info_entry.debug_info_stream
+                symbols_size = dbi_module_info_entry.symbols_size
+                c11_line_size = dbi_module_info_entry.c11_line_size
+                c13_line_size = dbi_module_info_entry.c13_line_size
+                module_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(stream_index))
+                module_stream = ModiStream(symbols_size=symbols_size, c11_line_size=c11_line_size, c13_line_size=c13_line_size, _io=module_kaitai_stream)
+                module_streams[module_index] = module_stream
+            return module_streams[module_index]
+        def get_machine() -> Machine:
+            nonlocal machine
+            dbi = get_dbi()
+            if machine is None:
+                machine = Machine(dbi.header.new_header.machine)
+            return machine
         if args.create_zip:
             with zipfile.ZipFile(args.create_zip, "w") as zf:
                 w = len(f"{msf_file.count_streams:d}")
@@ -173,8 +200,14 @@ def main():
 
         if args.list_streams:
             print("*** MSF Stream info")
-            print("")
+            print()
             print(f"Block size = {msf_file.block_size} (0x{msf_file.block_size:x})")
+            print()
+            print("Module streams")
+            print("stream symbol      c11_line   c13_line   name")
+            dbi = get_dbi()
+            for modi, mod_info in enumerate(get_dbi().module_info.entries, 1):
+                print(f"{mod_info.debug_info_stream:6} 0x{mod_info.symbols_size:08x}  0x{mod_info.c11_line_size:08x} 0x{mod_info.c13_line_size:08x} {mod_info.module_name}")
             for stream_index in range(len(msf_file.stream_sizes)):
                 print()
                 print(f"Stream {stream_index}:")
@@ -238,13 +271,29 @@ def main():
                         i += 1
                 else:
                     print("Unsupported hash version (PLEASE SHARE THIS PDB!)")
+
         if args.dump_modules:
             print()
             print("*** MODULES")
             print()
-            for modi, mod_info in enumerate(get_dbi().module_info.entries, 1):
+            for module_index, mod_info in enumerate(get_dbi().module_info.entries, 1):
                 extra = f" \"{mod_info.module_name}\"" if mod_info.object_name != mod_info.module_name else ""
-                print(f"{modi:04X} \"{mod_info.object_name}\"{extra}")
+                print(f"{module_index:04X} \"{mod_info.object_name}\"{extra}")
+
+        if args.dump_symbols:
+            print()
+            print("*** SYMBOLS")
+            dbi = get_dbi()
+            m = get_machine()
+            for module_index, mod_info in enumerate(dbi.module_info.entries):
+                print()
+                print(f"** Module: \"{mod_info.module_name}\"")
+                print()
+                module_stream = get_module_stream(module_index)
+                for symbol in module_stream.symbols.entries:
+                    dump_symbol(symbol, machine=m, module_info=mod_info)
+
+                #TODO
 
         if args.dump_seccontrib:
             print()
@@ -307,6 +356,7 @@ def main():
             dump_tpi(get_tpi())
 
         if args.dump_id:
+            # FIXME: IPI stream is not available on small PDB's
             dump_ipi(get_ipi(), get_name_offset_to_name())
 
 if __name__ == "__main__":

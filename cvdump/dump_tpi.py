@@ -1,6 +1,7 @@
 import decimal
 import enum
 
+from cvdump.kaitai.names_stream import NamesStream
 from cvdump.kaitai.tpi_stream import TpiStream
 
 

@@ -126,13 +126,13 @@ types:
       - id: public_symbol_stream
         type: u2
         doc: snPSSyms
-      - id: version_pdb_dll_build
+      - id: version_number_mspdb_dll
         type: u2
         doc: 'usVerPdbDllBuild: build version of the pdb dll that built this pdb last.'
       - id: symbol_record_stream
         type: u2
         doc: snSymRecs
-      - id: version_pdb_dll_rbuild
+      - id: build_number_mspdb_dll
         type: u2
         doc: 'usVerPdbDllRBld: build version of the pdb dll that built this pdb last.'
       - id: module_info_size
@@ -333,10 +333,10 @@ types:
       - id: symbols_size
         type: u4
         doc: 'cbSyms: size of local symbols debug info in stream sn'
-      - id: lines_size
+      - id: c11_line_size
         type: u4
         doc: 'cbLines: size of line number debug info in stream sn'
-      - id: c13_line_number_info_size
+      - id: c13_line_size
         type: u4
         doc: 'cbC13Lines: size of C13 style line number info in stream sn'
       - id: source_file_count
