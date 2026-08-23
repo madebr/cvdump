@@ -4,6 +4,8 @@
 import kaitaistruct
 from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from cvdump.kaitai import numeric
+from cvdump.kaitai import pascal_string
+from cvdump.kaitai import strz_or_pascal
 from enum import IntEnum
 
 
@@ -230,8 +232,8 @@ class ModiStream(KaitaiStruct):
 
     def _read(self):
         self.signature = self._io.read_u4le()
-        if not self.signature == 4:
-            raise kaitaistruct.ValidationNotEqualError(4, self.signature, self._io, u"/seq/0")
+        if not  ((self.signature == 1) or (self.signature == 4)) :
+            raise kaitaistruct.ValidationNotAnyOfError(self.signature, self._io, u"/seq/0")
         self._raw_symbols = self._io.read_bytes(self.symbols_size - 4)
         _io__raw_symbols = KaitaiStream(BytesIO(self._raw_symbols))
         self.symbols = ModiStream.SymbolEntries(_io__raw_symbols, self, self._root)
@@ -284,6 +286,25 @@ class ModiStream(KaitaiStruct):
             pass
 
 
+    class Bprelsym3216t(KaitaiStruct):
+        """BPRELSYM32_16t (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(ModiStream.Bprelsym3216t, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.off = self._io.read_u4le()
+            self.typind = self._io.read_u2le()
+            self.name = pascal_string.PascalString(self._io)
+
+
+        def _fetch_instances(self):
+            pass
+            self.name._fetch_instances()
+
+
     class BuildinfoSym(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(ModiStream.BuildinfoSym, self).__init__(_io)
@@ -316,6 +337,26 @@ class ModiStream(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class CflagsSym(KaitaiStruct):
+        """CFLAGSSYM (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(ModiStream.CflagsSym, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.machine = self._io.read_u1()
+            self.language = self._io.read_u1()
+            self.flags = self._io.read_u2le()
+            self.ver = pascal_string.PascalString(self._io)
+
+
+        def _fetch_instances(self):
+            pass
+            self.ver._fetch_instances()
 
 
     class CoffgroupSym(KaitaiStruct):
@@ -436,6 +477,26 @@ class ModiStream(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class Datasym3216t(KaitaiStruct):
+        """DATASYM32_16t (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(ModiStream.Datasym3216t, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.off = self._io.read_u4le()
+            self.seg = self._io.read_u2le()
+            self.typind = self._io.read_u2le()
+            self.name = pascal_string.PascalString(self._io)
+
+
+        def _fetch_instances(self):
+            pass
+            self.name._fetch_instances()
 
 
     class DefrangeSym(KaitaiStruct):
@@ -861,21 +922,23 @@ class ModiStream(KaitaiStruct):
 
     class LabelSym32(KaitaiStruct):
         """LABELSYM32 (cvinfo.h)."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, is_strz, _io, _parent=None, _root=None):
             super(ModiStream.LabelSym32, self).__init__(_io)
             self._parent = _parent
             self._root = _root
+            self.is_strz = is_strz
             self._read()
 
         def _read(self):
             self.off = self._io.read_u4le()
             self.seg = self._io.read_u2le()
             self.flags = self._io.read_u1()
-            self.name = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+            self.name = strz_or_pascal.StrzOrPascal(self.is_strz, self._io)
 
 
         def _fetch_instances(self):
             pass
+            self.name._fetch_instances()
 
 
     class LocalSym(KaitaiStruct):
@@ -933,19 +996,21 @@ class ModiStream(KaitaiStruct):
 
     class ObjnameSym(KaitaiStruct):
         """OBJNAMESYM (cvinfo.h)."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, is_strz, _io, _parent=None, _root=None):
             super(ModiStream.ObjnameSym, self).__init__(_io)
             self._parent = _parent
             self._root = _root
+            self.is_strz = is_strz
             self._read()
 
         def _read(self):
             self.signature = self._io.read_u4le()
-            self.name = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+            self.name = strz_or_pascal.StrzOrPascal(self.is_strz, self._io)
 
 
         def _fetch_instances(self):
             pass
+            self.name._fetch_instances()
 
 
     class Procsym32(KaitaiStruct):
@@ -974,6 +1039,33 @@ class ModiStream(KaitaiStruct):
             pass
 
 
+    class Procsym3216t(KaitaiStruct):
+        """PROCSYM32_16t (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(ModiStream.Procsym3216t, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.pointer_parent = self._io.read_u4le()
+            self.pointer_end = self._io.read_u4le()
+            self.pointer_next = self._io.read_u4le()
+            self.len = self._io.read_u4le()
+            self.debug_start = self._io.read_u4le()
+            self.debug_end = self._io.read_u4le()
+            self.off = self._io.read_u4le()
+            self.seg = self._io.read_u2le()
+            self.typind = self._io.read_u2le()
+            self.flags = self._io.read_u1()
+            self.name = pascal_string.PascalString(self._io)
+
+
+        def _fetch_instances(self):
+            pass
+            self.name._fetch_instances()
+
+
     class Record(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(ModiStream.Record, self).__init__(_io)
@@ -990,6 +1082,9 @@ class ModiStream(KaitaiStruct):
             elif _on == ModiStream.SymbolType.s_bprel32:
                 pass
                 self.element = ModiStream.BprelSym32(self._io, self, self._root)
+            elif _on == ModiStream.SymbolType.s_bprel32_16t:
+                pass
+                self.element = ModiStream.Bprelsym3216t(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_buildinfo:
                 pass
                 self.element = ModiStream.BuildinfoSym(self._io, self, self._root)
@@ -1008,6 +1103,9 @@ class ModiStream(KaitaiStruct):
             elif _on == ModiStream.SymbolType.s_coffgroup:
                 pass
                 self.element = ModiStream.CoffgroupSym(self._io, self, self._root)
+            elif _on == ModiStream.SymbolType.s_compile:
+                pass
+                self.element = ModiStream.CflagsSym(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_compile2:
                 pass
                 self.element = ModiStream.Compilesym2Sym(self._io, self, self._root)
@@ -1056,6 +1154,9 @@ class ModiStream(KaitaiStruct):
             elif _on == ModiStream.SymbolType.s_gproc32:
                 pass
                 self.element = ModiStream.Procsym32(self._io, self, self._root)
+            elif _on == ModiStream.SymbolType.s_gproc32_16t:
+                pass
+                self.element = ModiStream.Procsym3216t(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_heapallocsite:
                 pass
                 self.element = ModiStream.HeapAllocSite(self._io, self, self._root)
@@ -1070,25 +1171,40 @@ class ModiStream(KaitaiStruct):
                 self.element = ModiStream.InlineSiteEndSym(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_label32:
                 pass
-                self.element = ModiStream.LabelSym32(self._io, self, self._root)
+                self.element = ModiStream.LabelSym32(True, self._io, self, self._root)
+            elif _on == ModiStream.SymbolType.s_label32_st:
+                pass
+                self.element = ModiStream.LabelSym32(False, self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_ldata32:
                 pass
                 self.element = ModiStream.Data32Sym(self._io, self, self._root)
+            elif _on == ModiStream.SymbolType.s_ldata32_16t:
+                pass
+                self.element = ModiStream.Datasym3216t(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_local:
                 pass
                 self.element = ModiStream.LocalSym(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_lproc32:
                 pass
                 self.element = ModiStream.Procsym32(self._io, self, self._root)
+            elif _on == ModiStream.SymbolType.s_lproc32_16t:
+                pass
+                self.element = ModiStream.Procsym3216t(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_manconstant:
                 pass
                 self.element = ModiStream.ConstSym(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_objname:
                 pass
-                self.element = ModiStream.ObjnameSym(self._io, self, self._root)
+                self.element = ModiStream.ObjnameSym(True, self._io, self, self._root)
+            elif _on == ModiStream.SymbolType.s_objname_st:
+                pass
+                self.element = ModiStream.ObjnameSym(False, self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_register:
                 pass
                 self.element = ModiStream.RegSym(self._io, self, self._root)
+            elif _on == ModiStream.SymbolType.s_register_16t:
+                pass
+                self.element = ModiStream.Regsym16(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_regrel32:
                 pass
                 self.element = ModiStream.RegRel32(self._io, self, self._root)
@@ -1097,7 +1213,10 @@ class ModiStream(KaitaiStruct):
                 self.element = ModiStream.SectionSym(self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_thunk32:
                 pass
-                self.element = ModiStream.ThunkSym32(self._io, self, self._root)
+                self.element = ModiStream.ThunkSym32(True, self._io, self, self._root)
+            elif _on == ModiStream.SymbolType.s_thunk32_st:
+                pass
+                self.element = ModiStream.ThunkSym32(False, self._io, self, self._root)
             elif _on == ModiStream.SymbolType.s_udt:
                 pass
                 self.element = ModiStream.UdtSym(self._io, self, self._root)
@@ -1113,6 +1232,9 @@ class ModiStream(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_bprel32:
+                pass
+                self.element._fetch_instances()
+            elif _on == ModiStream.SymbolType.s_bprel32_16t:
                 pass
                 self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_buildinfo:
@@ -1131,6 +1253,9 @@ class ModiStream(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_coffgroup:
+                pass
+                self.element._fetch_instances()
+            elif _on == ModiStream.SymbolType.s_compile:
                 pass
                 self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_compile2:
@@ -1181,6 +1306,9 @@ class ModiStream(KaitaiStruct):
             elif _on == ModiStream.SymbolType.s_gproc32:
                 pass
                 self.element._fetch_instances()
+            elif _on == ModiStream.SymbolType.s_gproc32_16t:
+                pass
+                self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_heapallocsite:
                 pass
                 self.element._fetch_instances()
@@ -1196,7 +1324,13 @@ class ModiStream(KaitaiStruct):
             elif _on == ModiStream.SymbolType.s_label32:
                 pass
                 self.element._fetch_instances()
+            elif _on == ModiStream.SymbolType.s_label32_st:
+                pass
+                self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_ldata32:
+                pass
+                self.element._fetch_instances()
+            elif _on == ModiStream.SymbolType.s_ldata32_16t:
                 pass
                 self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_local:
@@ -1205,13 +1339,22 @@ class ModiStream(KaitaiStruct):
             elif _on == ModiStream.SymbolType.s_lproc32:
                 pass
                 self.element._fetch_instances()
+            elif _on == ModiStream.SymbolType.s_lproc32_16t:
+                pass
+                self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_manconstant:
                 pass
                 self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_objname:
                 pass
                 self.element._fetch_instances()
+            elif _on == ModiStream.SymbolType.s_objname_st:
+                pass
+                self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_register:
+                pass
+                self.element._fetch_instances()
+            elif _on == ModiStream.SymbolType.s_register_16t:
                 pass
                 self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_regrel32:
@@ -1221,6 +1364,9 @@ class ModiStream(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_thunk32:
+                pass
+                self.element._fetch_instances()
+            elif _on == ModiStream.SymbolType.s_thunk32_st:
                 pass
                 self.element._fetch_instances()
             elif _on == ModiStream.SymbolType.s_udt:
@@ -1266,6 +1412,25 @@ class ModiStream(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class Regsym16(KaitaiStruct):
+        """REGSYM_16t (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(ModiStream.Regsym16, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.typind = self._io.read_u2le()
+            self.reg = self._io.read_u2le()
+            self.name = pascal_string.PascalString(self._io)
+
+
+        def _fetch_instances(self):
+            pass
+            self.name._fetch_instances()
 
 
     class SectionSym(KaitaiStruct):
@@ -1337,10 +1502,11 @@ class ModiStream(KaitaiStruct):
 
     class ThunkSym32(KaitaiStruct):
         """THUNKSYM32 (cvinfo.h)."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, is_strz, _io, _parent=None, _root=None):
             super(ModiStream.ThunkSym32, self).__init__(_io)
             self._parent = _parent
             self._root = _root
+            self.is_strz = is_strz
             self._read()
 
         def _read(self):
@@ -1351,14 +1517,14 @@ class ModiStream(KaitaiStruct):
             self.seg = self._io.read_u2le()
             self.len = self._io.read_u2le()
             self.ord = self._io.read_u1()
-            self.name = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+            self.name = strz_or_pascal.StrzOrPascal(self.is_strz, self._io)
             if self.ord == 1:
                 pass
                 self.variant_adjustor_delta = self._io.read_u2le()
 
             if self.ord == 1:
                 pass
-                self.variant_adjustor_target = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+                self.variant_adjustor_target = strz_or_pascal.StrzOrPascal(self.is_strz, self._io)
 
             if self.ord == 2:
                 pass
@@ -1368,11 +1534,13 @@ class ModiStream(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+            self.name._fetch_instances()
             if self.ord == 1:
                 pass
 
             if self.ord == 1:
                 pass
+                self.variant_adjustor_target._fetch_instances()
 
             if self.ord == 2:
                 pass

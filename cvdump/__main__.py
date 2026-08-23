@@ -9,7 +9,7 @@ import uuid
 import zipfile
 
 from cvdump.dump_tpi import dump_ipi, dump_tpi
-from cvdump.dump_symbol import dump_symbol
+from cvdump.dump_symbol import dump_symbol, MachineConfig
 from cvdump.machine import Machine
 from cvdump.msf import MsfFile
 from cvdump.kaitai.dbi_stream import DbiStream
@@ -178,18 +178,25 @@ def main():
                 dbi = get_dbi()
                 dbi_module_info_entry = dbi.module_info.entries[module_index]
                 stream_index = dbi_module_info_entry.debug_info_stream
-                symbols_size = dbi_module_info_entry.symbols_size
-                c11_line_size = dbi_module_info_entry.c11_line_size
-                c13_line_size = dbi_module_info_entry.c13_line_size
-                module_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(stream_index))
-                module_stream = ModiStream(symbols_size=symbols_size, c11_line_size=c11_line_size, c13_line_size=c13_line_size, _io=module_kaitai_stream)
+                module_stream = None
+                if stream_index != 0xffff:
+                    symbols_size = dbi_module_info_entry.symbols_size
+                    if hasattr(dbi_module_info_entry, "c11_line_size"):
+                        c11_line_size = dbi_module_info_entry.c11_line_size
+                        c13_line_size = dbi_module_info_entry.c13_line_size
+                    else:
+                        c11_line_size = dbi_module_info_entry.lines_size
+                        c13_line_size = 0
+                    module_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(stream_index))
+                    module_stream = ModiStream(symbols_size=symbols_size, c11_line_size=c11_line_size, c13_line_size=c13_line_size, _io=module_kaitai_stream)
                 module_streams[module_index] = module_stream
             return module_streams[module_index]
         def get_machine() -> Machine:
             nonlocal machine
-            dbi = get_dbi()
             if machine is None:
-                machine = Machine(dbi.header.new_header.machine)
+                dbi = get_dbi()
+                if hasattr(dbi.header, "new_header"):
+                    machine = Machine(dbi.header.new_header.machine)
             return machine
         if args.create_zip:
             with zipfile.ZipFile(args.create_zip, "w") as zf:
@@ -207,7 +214,16 @@ def main():
             print("stream symbol      c11_line   c13_line   name")
             dbi = get_dbi()
             for modi, mod_info in enumerate(get_dbi().module_info.entries, 1):
-                print(f"{mod_info.debug_info_stream:6} 0x{mod_info.symbols_size:08x}  0x{mod_info.c11_line_size:08x} 0x{mod_info.c13_line_size:08x} {mod_info.module_name}")
+                debug_info_stream = mod_info.debug_info_stream
+                if debug_info_stream == 0xffff:
+                    debug_info_stream = "n/a"
+                if hasattr(mod_info, "c11_line_size"):
+                    c11_line_size = mod_info.c11_line_size
+                    c13_line_size = mod_info.c13_line_size
+                else:
+                    c11_line_size = mod_info.lines_size
+                    c13_line_size = 0
+                print(f"{debug_info_stream:>6} 0x{mod_info.symbols_size:08x}  0x{c11_line_size:08x} 0x{c13_line_size:08x} {mod_info.module_name}")
             for stream_index in range(len(msf_file.stream_sizes)):
                 print()
                 print(f"Stream {stream_index}:")
@@ -222,7 +238,7 @@ def main():
             print("*** PDF INFORMATION:")
             print()
             print(f"  version: {info.version}")
-            print(f"     time: {datetime.datetime.fromtimestamp(info.timestamp).strftime('%Y-%m-%d %H:%M:%S')} (0x{info.timestamp:08x}")
+            print(f"     time: {datetime.datetime.fromtimestamp(info.timestamp).strftime('%Y-%m-%d %H:%M:%S')} (0x{info.timestamp:08x})")
             if hasattr(info, "contents_vc50"):
                 print("Stream map:")
                 for stream_name, stream_index in get_named_stream_map().items():
@@ -284,14 +300,17 @@ def main():
             print()
             print("*** SYMBOLS")
             dbi = get_dbi()
-            m = get_machine()
             for module_index, mod_info in enumerate(dbi.module_info.entries):
+                machine_config = MachineConfig(machine=get_machine())
+
                 print()
                 print(f"** Module: \"{mod_info.module_name}\"")
-                print()
                 module_stream = get_module_stream(module_index)
+                if module_stream is None:
+                    continue
+                print()
                 for symbol in module_stream.symbols.entries:
-                    dump_symbol(symbol, machine=m, module_info=mod_info)
+                    dump_symbol(symbol, machine_config=machine_config, module_info=mod_info)
 
                 #TODO
 

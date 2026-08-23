@@ -2,6 +2,8 @@ meta:
   id: tpi_stream
   imports:
     - numeric
+    - pascal_string
+    - strz_or_pascal
   endian: le
 doc: HDR_16t (tpi.h)
 seq:
@@ -532,7 +534,7 @@ types:
       - id: value
         type: numeric
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_enumerate)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_enumerate)
   lf_member:
     doc: lfMember
     seq:
@@ -543,7 +545,7 @@ types:
       - id: offset
         type: numeric
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_member)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_member)
   lf_bclass:
     doc: lfBClass (cvinfo.h)
     seq:
@@ -564,7 +566,7 @@ types:
         if: ((attr & 0x1c) >> 2) == 4 or ((attr & 0x1c) >> 2) == 6
         type: u4
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_onemethod)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_onemethod)
   lf_method:
     doc: lfMethod
     seq:
@@ -573,7 +575,7 @@ types:
       - id: m_list
         type: u4
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_method)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_method)
   lf_nesttype:
     doc: lfNestType
     seq:
@@ -582,7 +584,7 @@ types:
       - id: index
         type: u4
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_nesttype)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_nesttype)
   lf_vfunctab:
     doc: lfVFuncTab
     seq:
@@ -600,7 +602,7 @@ types:
         type: u4
         doc: index of type record for field
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_stmember)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_stmember)
   lf_index:
     doc: lfIndex_16t (cvinfo)
     seq:
@@ -643,7 +645,7 @@ types:
         type: u4
         doc: type index of LF_FIELD descriptor list
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_enum)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_enum)
         doc: length prefixed name of enum
   lf_class_16t:
     doc: lfClass_16t (cvinfo.h)
@@ -661,10 +663,10 @@ types:
       - id: size
         type: numeric
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
 #      - id: unique_name
 #        if: (property & 0x20) != 0
-#        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
+#        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
   lf_array_16t:
     doc: lfArray_16t (cvinfo.h)
     seq:
@@ -862,7 +864,7 @@ types:
       - id: length
         type: numeric
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_array)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_array)
   lf_class:
     doc: lfClass (cvinfo.h)
     seq:
@@ -879,10 +881,10 @@ types:
       - id: size
         type: numeric
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
       - id: unique_name
         if: (property & 0x200) != 0
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_class or _parent.type == leaf::leaf_type::lf_structure)
   lf_pointer:
     doc: lfPointer (cvinfo.h)
     seq:
@@ -948,7 +950,7 @@ types:
       - id: size
         type: numeric
       - id: name
-        type: zero_terminated_or_pascal_string(_parent.type == leaf::leaf_type::lf_union)
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_union)
 
   lf_bitfield_16t:
     doc: lfBitfield_16t (cvinfo.h)
@@ -1027,51 +1029,3 @@ types:
       - id: name
         type: strz
         encoding: ASCII
-
-  pascal_string:
-    seq:
-      - id: len
-        type: u1
-      - id: text
-        type: str
-        encoding: ASCII
-        size: len
-
-#    instances:
-#      value:
-#        value: |
-#          tag < 0x8000 ? tag :
-#          tag == 0x8000 ? char_ :
-#          tag == 0x8001 ? short :
-#          tag == 0x8002 ? ushort :
-#          tag == 0x8003 ? long :
-#          tag == 0x8004 ? ulong :
-#          tag == 0x8005 ? real32 :
-#          tag == 0x8006 ? real64 :
-#          tag == 0x8007 ? real80 :
-#          tag == 0x8008 ? real128 :
-#          tag == 0x8009 ? quadword :
-#          tag == 0x800a ? uquadword :
-#          tag == 0x800b ? real48 :
-#          tag == 0x800c ? complex32 :
-#          tag == 0x800d ? complex64 :
-#          tag == 0x800e ? complex80 :
-#          tag == 0x800f ? complex128 :
-#          u4_value
-
-  zero_terminated_or_pascal_string:
-    params:
-      - id: zero_terminated
-        type: bool
-    seq:
-      - id: text_zero_terminated
-        type: str
-        if: zero_terminated
-        encoding: ASCII
-        terminator: 0
-      - id: text_pascal
-        type: pascal_string
-        if: not zero_terminated
-    instances:
-      text:
-        value: 'zero_terminated ? text_zero_terminated : text_pascal.text'

@@ -3,6 +3,23 @@ from cvdump.kaitai.modi_stream import ModiStream
 from cvdump.machine import Machine
 import enum
 
+class MachineConfig:
+    def __init__(self, machine: Machine | None=None):
+        self._machine = machine
+
+    def set_machine(self, machine: Machine):
+        if self._machine is not None:
+            if self._machine != machine:
+                raise ValueError
+        self._machine = machine
+
+    @property
+    def machine(self) -> Machine:
+        if self._machine is None:
+            raise ValueError
+        return self._machine
+
+
 class LanguageId(enum.IntEnum):
     CV_CFL_C            = 0
     CV_CFL_CXX          = 1
@@ -185,11 +202,37 @@ def GetLanguageIdString(language_id: int) -> str:
 
 
 def GetTargetProcessorString(processor_id: int) -> str:
-    s = PROCESSOR_TO_STRING.get(processor_id)
+    s = PROCESSOR_TO_STRING.get(CpuType(processor_id))
     if s is None:
         s = f"??? (0x{processor_id:x})"
     return s
 
+
+def GetFloatingPointPackageName(fp_package_id: int) -> str:
+    return (
+        "hardware",                       # CV_CFL_NDP
+        "emulator",                       # CV_CFL_EMU
+        "altmath",                        # CV_CFL_ALT
+        "???",
+    )[fp_package_id]
+
+
+def ProcessorToMachine(processor_id: int) -> Machine:
+    cpu = CpuType(processor_id)
+    match cpu:
+        case CpuType.CV_CFL_8080 | CpuType.CV_CFL_8086 | CpuType.CV_CFL_80286 | CpuType.CV_CFL_80386 | CpuType.CV_CFL_80486 | CpuType.CV_CFL_PENTIUM | CpuType.CV_CFL_PENTIUMII | CpuType.CV_CFL_PENTIUMPRO | CpuType.CV_CFL_PENTIUMIII:
+            return Machine.IMAGE_FILE_MACHINE_I386
+        case _:
+            raise ValueError
+
+
+def GetAmbientDataType(fp_package_id: int) -> str:
+    return (
+        "NEAR",                           # CV_CFL_xNEAR
+        "FAR",                            # CV_CFL_xFAR
+        "HUGE",                           # CV_CFL_xHUGE
+        "???",
+    )[fp_package_id]
 
 def print_proc_flags(flags: int):
     if not flags:
@@ -707,7 +750,7 @@ X86_REG_TO_NAME: dict[RegisterX86, str] = {
     RegisterX86.CV_REG_FPEDO: "fped0",
 }
 
-def get_c7_register_name(register: int, machine: int):
+def get_c7_register_name(register: int, machine: Machine):
     cpu = MACHINE_TO_CPU[machine]
     try:
         match cpu:
@@ -747,11 +790,11 @@ MACHINE_I386_FRAME_REGISTERS = [
     RegisterX86.CV_REG_EBX,
 ]
 
-def get_frame_register_name(frame_register: int, machine: Machine) -> str:
-    match machine:
+def get_frame_register_name(frame_register: int, machine_config: MachineConfig) -> str:
+    match machine_config.machine:
         case Machine.IMAGE_FILE_MACHINE_I386:
             register = MACHINE_I386_FRAME_REGISTERS[frame_register]
-            return get_c7_register_name(register=register, machine=machine)
+            return get_c7_register_name(register=register, machine=machine_config.machine)
         case _:
             raise ValueError
 
@@ -880,7 +923,7 @@ def yes_no(v: int | bool) -> str:
 
 
 
-def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
+def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module_info):
     try:
         symbol_type_name = symbol.record.type.name.upper()
     except AttributeError:
@@ -888,11 +931,23 @@ def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
         # symbol_type_name = hex(symbol.record.type)
     print(f"({symbol.pos:06X}) {symbol_type_name}:", end="")
     match symbol.record.type:
-        case ModiStream.SymbolType.s_objname:
-            print(f" Signature: {symbol.record.element.signature:08x}, {symbol.record.element.name}")
+        case ModiStream.SymbolType.s_objname | ModiStream.SymbolType.s_objname_st:
+            print(f" Signature: {symbol.record.element.signature:08x}, {symbol.record.element.name.text}")
             print()
+        case ModiStream.SymbolType.s_compile:
+            print()
+            machine_config.set_machine(ProcessorToMachine(symbol.record.element.machine))
+            print(f"\tLanguage: {GetLanguageIdString(symbol.record.element.language)}")
+            print(f"\tTarget processor: {GetTargetProcessorString(symbol.record.element.machine)}")
+            print(f"\tFloating-point precision: {(symbol.record.element.flags >> 1) & 0x3}")
+            print(f"\tFloating-point package: {GetFloatingPointPackageName((symbol.record.element.flags >> 11) & 0x3)}")
+            print(f"\tAmbient data: {GetAmbientDataType((symbol.record.element.flags >> 5) & 0x7)}")
+            print(f"\tAmbient code: {GetAmbientDataType((symbol.record.element.flags >> 8) & 0x7)}")
+            print(f"\tPCode present: {symbol.record.element.flags & 0x1}")
+            print(f"\tCompiler version: {symbol.record.element.ver.text}")
         case ModiStream.SymbolType.s_compile2:
             print()
+            machine_config.set_machine(ProcessorToMachine(symbol.record.element.machine))
             print(f"\tLanguage: {GetLanguageIdString(symbol.record.element.flags & 0xff)}")
             print(f"\tTarget processor: {GetTargetProcessorString(symbol.record.element.machine)}")
             print(f"\tCompiled for edit and continue: {yes_no(symbol.record.element.flags & 0x100)}")
@@ -910,6 +965,7 @@ def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
                 print(f"\t\t{block.key} = '{block.value}'")
         case ModiStream.SymbolType.s_compile3:
             print()
+            machine_config.set_machine(ProcessorToMachine(symbol.record.element.machine))
             print(f"\tLanguage: {GetLanguageIdString(symbol.record.element.flags & 0xff)}")
             print(f"\tTarget processor: {GetTargetProcessorString(symbol.record.element.machine)}")
             print(f"\tCompiled for edit and continue: {yes_no(symbol.record.element.flags & 0x100)}")
@@ -956,12 +1012,20 @@ def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
         case ModiStream.SymbolType.s_ldata32:
             print(f" [{symbol.record.element.segment:04X}:{symbol.record.element.offset:08X}, Type:", end="")
             print(f"\t{get_c7_type_name(symbol.record.element.type_index)}, {symbol.record.element.name}")
+        case ModiStream.SymbolType.s_ldata32_16t:
+            print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}, Type:", end="")
+            print(f"\t{get_c7_type_name(symbol.record.element.typind)}, {symbol.record.element.name.text}")
         case ModiStream.SymbolType.s_buildinfo:
             print(f"\t{get_c7_type_name(symbol.record.element.id)}")
             print()
         case ModiStream.SymbolType.s_lproc32 | ModiStream.SymbolType.s_gproc32:
             is_id: bool = False # symbol.record.type
             print(f" [{symbol.record.element.segment:04X}:{symbol.record.element.offset:08X}], Cb: {symbol.record.element.length:08X}, {'ID' if is_id else 'Type'}: {get_c7_type_name(symbol.record.element.type_index)}, {symbol.record.element.name}")
+            print(f"\tParent: {symbol.record.element.pointer_parent:08X}, End: {symbol.record.element.pointer_end:08X}, next: {symbol.record.element.pointer_next:08X}")
+            print(f"\tDebug start: {symbol.record.element.debug_start:08X}, Debug end: {symbol.record.element.debug_end:08X}")
+            print_proc_flags(symbol.record.element.flags)
+        case ModiStream.SymbolType.s_lproc32_16t | ModiStream.SymbolType.s_gproc32_16t:
+            print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], Cb: {symbol.record.element.len:08X}: {get_c7_type_name(symbol.record.element.typind)}, {symbol.record.element.name.text}")
             print(f"\tParent: {symbol.record.element.pointer_parent:08X}, End: {symbol.record.element.pointer_end:08X}, next: {symbol.record.element.pointer_next:08X}")
             print(f"\tDebug start: {symbol.record.element.debug_start:08X}, Debug end: {symbol.record.element.debug_end:08X}")
             print_proc_flags(symbol.record.element.flags)
@@ -975,9 +1039,9 @@ def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
                 case ModiStream.SymbolType.s_defrange_register:
                     if symbol.record.element.attr & 0x1:
                         print("MayAvailable", end="")
-                    print(f" {get_c7_register_name(register=symbol.record.element.reg, machine=machine)}", end="")
+                    print(f" {get_c7_register_name(register=symbol.record.element.reg, machine=machine_config.machine)}", end="")
                 case ModiStream.SymbolType.s_defrange_register_rel:
-                    print(f" [{get_c7_register_name(register=symbol.record.element.base_reg, machine=machine)} + {symbol.record.element.off_base_pointer:04X}]", end="")
+                    print(f" [{get_c7_register_name(register=symbol.record.element.base_reg, machine=machine_config.machine)} + {symbol.record.element.off_base_pointer:04X}]", end="")
                     if symbol.record.element.flags & 0x1:
                         offset_parent = symbol.record.element.flags >> 4
                         print(f" spilledUdtMember offset at {offset_parent}", end="")
@@ -988,7 +1052,7 @@ def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
                     print(f" offset at {offset_parent:04X}:", end="")
                     if symbol.record.element.attr & 0x1:
                         print("MayAvailable", end="")
-                    print(f"  {get_c7_register_name(register=symbol.record.element.reg, machine=machine)}", end="")
+                    print(f"  {get_c7_register_name(register=symbol.record.element.reg, machine=machine_config.machine)}", end="")
                 case _:
                     raise ValueError
             if symbol.record.type == ModiStream.SymbolType.s_defrange_framepointer_rel_full_scope:
@@ -1034,8 +1098,8 @@ def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
             if symbol.record.element.flags & 0x100000: props.append("opt_for_speed")
             print(" ".join(props), end="")
             props = []
-            print(f" Local={get_frame_register_name(frame_register=(symbol.record.element.flags >> 14) & 0x3, machine=machine)}", end="")
-            print(f" Param={get_frame_register_name(frame_register=(symbol.record.element.flags >> 16) & 0x3, machine=machine)}", end="")
+            print(f" Local={get_frame_register_name(frame_register=(symbol.record.element.flags >> 14) & 0x3, machine=machine_config.machine)}", end="")
+            print(f" Param={get_frame_register_name(frame_register=(symbol.record.element.flags >> 16) & 0x3, machine=machine_config.machine)}", end="")
             if symbol.record.element.flags & 0x200000: props.append("guardcf")
             if symbol.record.element.flags & 0x400000: props.append("guardcfw")
             print(" ".join(props), end="")
@@ -1045,6 +1109,9 @@ def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
             print()
         case ModiStream.SymbolType.s_bprel32:
             print(f" [{symbol.record.element.off:08X}], Type: {get_c7_type_name(symbol.record.element.typind)}, {symbol.record.element.name}", end="")
+            print()
+        case ModiStream.SymbolType.s_bprel32_16t:
+            print(f" [{symbol.record.element.off:08X}], Type: {get_c7_type_name(symbol.record.element.typind)}, {symbol.record.element.name.text}", end="")
             print()
         case ModiStream.SymbolType.s_callees:
             print(f" Count: {symbol.record.element.count}")
@@ -1063,13 +1130,13 @@ def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
                     print()
             print()
         case ModiStream.SymbolType.s_regrel32:
-            print(f" {get_c7_register_name(register=symbol.record.element.reg, machine=machine)}+{symbol.record.element.off:08X}, Type: {get_c7_type_name(symbol.record.element.typind):>18}, {symbol.record.element.name}")
+            print(f" {get_c7_register_name(register=symbol.record.element.reg, machine=machine_config.machine)}+{symbol.record.element.off:08X}, Type: {get_c7_type_name(symbol.record.element.typind):>18}, {symbol.record.element.name}")
         case ModiStream.SymbolType.s_callsiteinfo:
             print(f" [{symbol.record.element.sect:04X}:{symbol.record.element.off:08X}], type = {get_c7_type_name(symbol.record.element.typind):>18s}")
             if symbol.record.element.padding:
                 print(f"\tWarning: Reserved bytes in record are non-zero: 0x{symbol.record.element.padding:04X}")
-        case ModiStream.SymbolType.s_label32:
-            print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], {symbol.record.element.name}, ", end="")
+        case ModiStream.SymbolType.s_label32 | ModiStream.SymbolType.s_label32_st:
+            print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], {symbol.record.element.name.text}, ", end="")
             print_proc_flags(symbol.record.element.flags)
             print()
         case ModiStream.SymbolType.s_udt:
@@ -1095,22 +1162,28 @@ def dump_symbol(symbol: ModiStream.Symbol, machine: Machine, module_info):
             print(f" Type: {get_c7_type_name(symbol.record.element.typind)}, Value: {get_numeric_string(symbol.record.element.value)}, {symbol.record.element.name}")
         case ModiStream.SymbolType.s_unamespace:
             print(f" {symbol.record.element.name}")
-        case ModiStream.SymbolType.s_thunk32:
-            print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], Cb: {symbol.record.element.len:08X}, {symbol.record.element.name}")
+        case ModiStream.SymbolType.s_thunk32 | ModiStream.SymbolType.s_thunk32_st:
+            print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], Cb: {symbol.record.element.len:08X}, {symbol.record.element.name.text}")
             print(f"\tParent: {symbol.record.element.pointer_parent:08X}, End: {symbol.record.element.pointer_end:08X}, Next: {symbol.record.element.pointer_next:08X}")
             match symbol.record.element.ord:
                 case ThunkOrdinal.THUNK_ORDINAL_NOTYPE:
                     pass
                 case ThunkOrdinal.THUNK_ORDINAL_ADJUSTOR:
-                    print(f"\tType: Adjustor, Delta = {symbol.record.element.variant_adjustor_delta}, Target: {symbol.record.element.variant_adjustor_name}")
+                    print(f"\tType: Adjustor, Delta = {symbol.record.element.variant_adjustor_delta}, Target: {symbol.record.element.variant_adjustor_target.text}")
                 case ThunkOrdinal.THUNK_ORDINAL_VCALL:
                     print(f"\tType: VCall, Table Entry: {symbol.record.element.variant_vcall_table_entry}")
                 case _:
                     print(f"\tType: {symbol.record.element.ord:02X}")
         case ModiStream.SymbolType.s_register:
-            print(f" {get_c7_register_name(register=symbol.record.element.reg, machine=machine)}, Type: {get_c7_type_name(symbol.record.element.typind):>18}, {symbol.record.element.name}")
+            print(f" {get_c7_register_name(register=symbol.record.element.reg, machine=machine_config.machine)}, Type: {get_c7_type_name(symbol.record.element.typind):>18}, {symbol.record.element.name}")
+        case ModiStream.SymbolType.s_register_16t:
+            if symbol.record.element.reg >> 8 != 0:
+                print(f" {get_c7_register_name(register=symbol.record.element.reg >> 8, machine=machine_config.machine)}:", end="")
+            else:
+                print(" ", end="")
+            print(f"{get_c7_register_name(register=symbol.record.element.reg & 0xff, machine=machine_config.machine)}, Type: {get_c7_type_name(symbol.record.element.typind):>18}, {symbol.record.element.name.text}")
         case ModiStream.SymbolType.s_framecookie:
-            print(f" {get_c7_register_name(register=symbol.record.element.reg, machine=machine):>8}+{symbol.record.element.off:08X}, Type: {get_c7_cookie_type_name(symbol.record.element.cookietype)}, Flags: {symbol.record.element.flags:02X}")
+            print(f" {get_c7_register_name(register=symbol.record.element.reg, machine=machine_config.machine):>8}+{symbol.record.element.off:08X}, Type: {get_c7_cookie_type_name(symbol.record.element.cookietype)}, Flags: {symbol.record.element.flags:02X}")
         case ModiStream.SymbolType.s_block32:
             print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], Cb: {symbol.record.element.len:08X}, {symbol.record.element.name}")
             print(f"\tParent: {symbol.record.element.pointer_parent:08X}, End: {symbol.record.element.pointer_end:08X}")

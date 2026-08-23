@@ -2,6 +2,8 @@ meta:
   id: modi_stream
   imports:
     - numeric
+    - pascal_string
+    - strz_or_pascal
   endian: le
 params:
   - id: symbols_size
@@ -13,7 +15,8 @@ params:
 seq:
   - id: signature
     type: u4
-    valid: 4
+    valid:
+      any-of: [1, 4]
       # CV_SIGNATURE_C6   (0) # Actual signature is >64K
       # CV_SIGNATURE_C7   (1) # First explicit signature
       # CV_SIGNATURE_C11  (2) # C11 (vc5.x) 32-bit types
@@ -56,7 +59,8 @@ types:
         type:
           switch-on: type
           cases:
-            'symbol_type::s_objname': objname_sym
+            # CV_SIGNATURE_C13
+            'symbol_type::s_objname': objname_sym(true)
             'symbol_type::s_compile2': compilesym2_sym
             'symbol_type::s_compile3': compilesym3_sym
             'symbol_type::s_envblock': envblock_sym
@@ -78,7 +82,7 @@ types:
             'symbol_type::s_callers': function_list
             'symbol_type::s_regrel32': reg_rel32
             'symbol_type::s_callsiteinfo': callsite_info
-            'symbol_type::s_label32': label_sym32
+            'symbol_type::s_label32': label_sym32(true)
             'symbol_type::s_udt': udt_sym
             'symbol_type::s_coboludt': udt_sym
             'symbol_type::s_filestatic': file_static_sym
@@ -90,12 +94,77 @@ types:
             'symbol_type::s_manconstant': const_sym
             'symbol_type::s_unamespace': unamespace
             'symbol_type::s_end': end_arg_sym
-            'symbol_type::s_thunk32': thunk_sym32
+            'symbol_type::s_thunk32': thunk_sym32(true)
             'symbol_type::s_register': reg_sym
             'symbol_type::s_framecookie': framecookie
             'symbol_type::s_block32': block_sym32
             'symbol_type::s_section': section_sym
             'symbol_type::s_coffgroup': coffgroup_sym
+
+            # CV_SIGNATURE_C7
+            'symbol_type::s_compile': cflags_sym
+            'symbol_type::s_objname_st': objname_sym(false)
+            'symbol_type::s_gproc32_16t': procsym32_16t
+            'symbol_type::s_lproc32_16t': procsym32_16t
+            'symbol_type::s_bprel32_16t': bprelsym32_16t
+            'symbol_type::s_label32_st': label_sym32(false)
+            'symbol_type::s_register_16t': regsym_16
+            'symbol_type::s_ldata32_16t': datasym32_16t
+            'symbol_type::s_thunk32_st': thunk_sym32(false)
+  datasym32_16t:
+    doc: 'DATASYM32_16t (cvinfo.h)'
+    seq:
+      - id: 'off'
+        type: u4
+      - id: seg
+        type: u2
+      - id: typind
+        type: u2
+      - id: name
+        type: pascal_string
+  regsym_16:
+    doc: 'REGSYM_16t (cvinfo.h)'
+    seq:
+      - id: typind
+        type: u2
+      - id: reg
+        type: u2
+      - id: name
+        type: pascal_string
+  bprelsym32_16t:
+    doc: 'BPRELSYM32_16t (cvinfo.h)'
+    seq:
+      - id: 'off'
+        type: u4
+      - id: typind
+        type: u2
+      - id: name
+        type: pascal_string
+  procsym32_16t:
+    doc: 'PROCSYM32_16t (cvinfo.h)'
+    seq:
+      - id: pointer_parent
+        type: u4
+      - id: pointer_end
+        type: u4
+      - id: pointer_next
+        type: u4
+      - id: len
+        type: u4
+      - id: debug_start
+        type: u4
+      - id: debug_end
+        type: u4
+      - id: 'off'
+        type: u4
+      - id: seg
+        type: u2
+      - id: typind
+        type: u2
+      - id: flags
+        type: u1
+      - id: name
+        type: pascal_string
   coffgroup_sym:
     doc: 'COFFGROUPSYM (cvinfo.h)'
     seq:
@@ -167,6 +236,9 @@ types:
         encoding: ASCII
   thunk_sym32:
     doc: THUNKSYM32 (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: pointer_parent
         type: u4
@@ -183,15 +255,13 @@ types:
       - id: ord
         type: u1
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
       - id: variant_adjustor_delta
         if: ord == 1
         type: u2
       - id: variant_adjustor_target
         if: ord == 1
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
       - id: variant_vcall_table_entry
         if: ord == 2
         type: u2
@@ -267,6 +337,9 @@ types:
         encoding: ASCII
   label_sym32:
     doc: LABELSYM32 (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: 'off'
         type: u4
@@ -275,8 +348,7 @@ types:
       - id: flags
         type: u1
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
   callsite_info:
     doc: CALLSITEINFO (cvinfo.h)
     seq:
@@ -437,6 +509,17 @@ types:
       - id: name
         type: strz
         encoding: ASCII
+  cflags_sym:
+    doc: CFLAGSSYM (cvinfo.h)
+    seq:
+      - id: machine
+        type: u1
+      - id: language
+        type: u1
+      - id: flags
+        type: u2
+      - id: ver
+        type: pascal_string
   compilesym2_sym:
     doc: COMPILESYM (cvinfo.h)
     seq:
@@ -495,12 +578,15 @@ types:
         type: u4
   objname_sym:
     doc: OBJNAMESYM (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: signature
         type: u4
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
+
   procsym32:
     doc: PROCSYM32 (cvinfo.h)
     seq:

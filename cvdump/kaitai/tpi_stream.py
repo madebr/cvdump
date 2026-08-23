@@ -4,6 +4,8 @@
 import kaitaistruct
 from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from cvdump.kaitai import numeric
+from cvdump.kaitai import pascal_string
+from cvdump.kaitai import strz_or_pascal
 from enum import IntEnum
 
 
@@ -799,7 +801,7 @@ class TpiStream(KaitaiStruct):
             self.elemtype = self._io.read_u4le()
             self.idxtype = self._io.read_u4le()
             self.length = numeric.Numeric(self._io)
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_array, self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_array, self._io)
 
 
         def _fetch_instances(self):
@@ -820,7 +822,7 @@ class TpiStream(KaitaiStruct):
             self.elemtype = self._io.read_u2le()
             self.idxtype = self._io.read_u2le()
             self.length = numeric.Numeric(self._io)
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -941,10 +943,10 @@ class TpiStream(KaitaiStruct):
             self.derived = self._io.read_u4le()
             self.vshape = self._io.read_u4le()
             self.size = numeric.Numeric(self._io)
-            self.name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io)
             if self.property & 512 != 0:
                 pass
-                self.unique_name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
+                self.unique_name = strz_or_pascal.StrzOrPascal( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io)
 
 
 
@@ -973,7 +975,7 @@ class TpiStream(KaitaiStruct):
             self.derived = self._io.read_u2le()
             self.vshape = self._io.read_u2le()
             self.size = numeric.Numeric(self._io)
-            self.name = TpiStream.ZeroTerminatedOrPascalString( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal( ((self._parent.type == TpiStream.Leaf.LeafType.lf_class) or (self._parent.type == TpiStream.Leaf.LeafType.lf_structure)) , self._io)
 
 
         def _fetch_instances(self):
@@ -995,7 +997,7 @@ class TpiStream(KaitaiStruct):
             self.property = self._io.read_u2le()
             self.utype = self._io.read_u4le()
             self.field = self._io.read_u4le()
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_enum, self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_enum, self._io)
 
 
         def _fetch_instances(self):
@@ -1016,7 +1018,7 @@ class TpiStream(KaitaiStruct):
             self.utype = self._io.read_u2le()
             self.field = self._io.read_u2le()
             self.property = self._io.read_u2le()
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -1035,7 +1037,7 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.attributes = self._io.read_u2le()
             self.value = numeric.Numeric(self._io)
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_enumerate, self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_enumerate, self._io)
 
 
         def _fetch_instances(self):
@@ -1055,7 +1057,7 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.attributes = self._io.read_u2le()
             self.value = numeric.Numeric(self._io)
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -1175,7 +1177,7 @@ class TpiStream(KaitaiStruct):
             self.attr = self._io.read_u2le()
             self.index = self._io.read_u4le()
             self.offset = numeric.Numeric(self._io)
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_member, self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_member, self._io)
 
 
         def _fetch_instances(self):
@@ -1196,7 +1198,7 @@ class TpiStream(KaitaiStruct):
             self.index = self._io.read_u2le()
             self.attr = self._io.read_u2le()
             self.offset = numeric.Numeric(self._io)
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -1216,7 +1218,7 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.count = self._io.read_u2le()
             self.m_list = self._io.read_u4le()
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_method, self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_method, self._io)
 
 
         def _fetch_instances(self):
@@ -1235,7 +1237,7 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.count = self._io.read_u2le()
             self.m_list = self._io.read_u2le()
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -1451,7 +1453,7 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.pad0 = self._io.read_u2le()
             self.index = self._io.read_u4le()
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_nesttype, self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_nesttype, self._io)
 
 
         def _fetch_instances(self):
@@ -1469,7 +1471,7 @@ class TpiStream(KaitaiStruct):
 
         def _read(self):
             self.index = self._io.read_u2le()
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -1492,7 +1494,7 @@ class TpiStream(KaitaiStruct):
                 pass
                 self.vfptr_offset = self._io.read_u4le()
 
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_onemethod, self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_onemethod, self._io)
 
 
         def _fetch_instances(self):
@@ -1518,7 +1520,7 @@ class TpiStream(KaitaiStruct):
                 pass
                 self.vfptr_offset = self._io.read_u4le()
 
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -1664,7 +1666,7 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.attr = self._io.read_u2le()
             self.index = self._io.read_u4le()
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_stmember, self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_stmember, self._io)
 
 
         def _fetch_instances(self):
@@ -1683,7 +1685,7 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.index = self._io.read_u2le()
             self.attr = self._io.read_u2le()
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -1740,7 +1742,7 @@ class TpiStream(KaitaiStruct):
             self.property = self._io.read_u2le()
             self.field = self._io.read_u4le()
             self.size = numeric.Numeric(self._io)
-            self.name = TpiStream.ZeroTerminatedOrPascalString(self._parent.type == TpiStream.Leaf.LeafType.lf_union, self._io, self, self._root)
+            self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_union, self._io)
 
 
         def _fetch_instances(self):
@@ -1762,7 +1764,7 @@ class TpiStream(KaitaiStruct):
             self.field = self._io.read_u2le()
             self.property = self._io.read_u2le()
             self.size = numeric.Numeric(self._io)
-            self.name = TpiStream.PascalString(self._io, self, self._root)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -1860,22 +1862,6 @@ class TpiStream(KaitaiStruct):
         def _read(self):
             self.offset = self._io.read_u4le()
             self.count = self._io.read_u4le()
-
-
-        def _fetch_instances(self):
-            pass
-
-
-    class PascalString(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
-            super(TpiStream.PascalString, self).__init__(_io)
-            self._parent = _parent
-            self._root = _root
-            self._read()
-
-        def _read(self):
-            self.len = self._io.read_u1()
-            self.text = (self._io.read_bytes(self.len)).decode(u"ASCII")
 
 
         def _fetch_instances(self):
@@ -2036,44 +2022,6 @@ class TpiStream(KaitaiStruct):
             self.hash_values_location._fetch_instances()
             self.ti_off_location._fetch_instances()
             self.hash_adj_location._fetch_instances()
-
-
-    class ZeroTerminatedOrPascalString(KaitaiStruct):
-        def __init__(self, zero_terminated, _io, _parent=None, _root=None):
-            super(TpiStream.ZeroTerminatedOrPascalString, self).__init__(_io)
-            self._parent = _parent
-            self._root = _root
-            self.zero_terminated = zero_terminated
-            self._read()
-
-        def _read(self):
-            if self.zero_terminated:
-                pass
-                self.text_zero_terminated = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
-
-            if (not (self.zero_terminated)):
-                pass
-                self.text_pascal = TpiStream.PascalString(self._io, self, self._root)
-
-
-
-        def _fetch_instances(self):
-            pass
-            if self.zero_terminated:
-                pass
-
-            if (not (self.zero_terminated)):
-                pass
-                self.text_pascal._fetch_instances()
-
-
-        @property
-        def text(self):
-            if hasattr(self, '_m_text'):
-                return self._m_text
-
-            self._m_text = (self.text_zero_terminated if self.zero_terminated else self.text_pascal.text)
-            return getattr(self, '_m_text', None)
 
 
 
