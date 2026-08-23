@@ -16,12 +16,13 @@ seq:
   - id: signature
     type: u4
     valid:
-      any-of: [1, 4]
+      any-of: [65537, 1, 2, 4]
       # CV_SIGNATURE_C6   (0) # Actual signature is >64K
-      # CV_SIGNATURE_C7   (1) # First explicit signature
-      # CV_SIGNATURE_C11  (2) # C11 (vc5.x) 32-bit types
-      # CV_SIGNATURE_C13  (4) # C13 (vc7.x) zero terminated names
+      # CV_SIGNATURE_C7   (1) # First explicit signature (MSVC 4.2)
+      # CV_SIGNATURE_C11  (2) # C11 (vc5.x) 32-bit types (MSVC5, MSVC6)
+      # CV_SIGNATURE_C13  (4) # C13 (vc7.x) zero terminated names (MSVC2026)
   - id: symbols
+    if: symbols_size > 0
     type: symbol_entries
     size: symbols_size - 4
   - id: c11_line_info
@@ -29,8 +30,10 @@ seq:
   - id: c13_line_info
     size: c13_line_size
   - id: global_refs_size
+    if: signature != 65537
     type: u4
   - id: global_refs
+    if: signature != 65537
     size: global_refs_size
 types:
   symbol_entries:
@@ -61,14 +64,14 @@ types:
           cases:
             # CV_SIGNATURE_C13
             'symbol_type::s_objname': objname_sym(true)
-            'symbol_type::s_compile2': compilesym2_sym
+            'symbol_type::s_compile2': compilesym2_sym(true)
             'symbol_type::s_compile3': compilesym3_sym
             'symbol_type::s_envblock': envblock_sym
             'symbol_type::s_export': export_sym
-            'symbol_type::s_ldata32': data32_sym
+            'symbol_type::s_ldata32': data32_sym(true)
             'symbol_type::s_buildinfo': buildinfo_sym
-            'symbol_type::s_lproc32': procsym32
-            'symbol_type::s_gproc32': procsym32
+            'symbol_type::s_lproc32': procsym32(true)
+            'symbol_type::s_gproc32': procsym32(true)
             'symbol_type::s_local': local_sym
             'symbol_type::s_defrange_register': defrange_sym_register
             'symbol_type::s_defrange_register_rel': defrange_sym_register_rel
@@ -77,27 +80,27 @@ types:
             'symbol_type::s_defrange_framepointer_rel': defrange_sym_frame_pointer_rel
             'symbol_type::s_defrange_subfield_register': defrange_sym_subfield_register
             'symbol_type::s_frameproc': frame_proc_sym
-            'symbol_type::s_bprel32': bprel_sym32
+            'symbol_type::s_bprel32': bprel_sym32(true)
             'symbol_type::s_callees': function_list
             'symbol_type::s_callers': function_list
             'symbol_type::s_regrel32': reg_rel32
             'symbol_type::s_callsiteinfo': callsite_info
             'symbol_type::s_label32': label_sym32(true)
-            'symbol_type::s_udt': udt_sym
-            'symbol_type::s_coboludt': udt_sym
+            'symbol_type::s_udt': udt_sym(true)
+            'symbol_type::s_coboludt': udt_sym(true)
             'symbol_type::s_filestatic': file_static_sym
             'symbol_type::s_inlinesite': inline_site_sym
             'symbol_type::s_inlinesite_end': inline_site_end_sym
             'symbol_type::s_inlinees': inlinees_sym
             'symbol_type::s_heapallocsite': heap_alloc_site
-            'symbol_type::s_constant': const_sym
-            'symbol_type::s_manconstant': const_sym
+            'symbol_type::s_constant': const_sym(true)
+            'symbol_type::s_manconstant': const_sym(true)
             'symbol_type::s_unamespace': unamespace
             'symbol_type::s_end': end_arg_sym
             'symbol_type::s_thunk32': thunk_sym32(true)
-            'symbol_type::s_register': reg_sym
+            'symbol_type::s_register': reg_sym(true)
             'symbol_type::s_framecookie': framecookie
-            'symbol_type::s_block32': block_sym32
+            'symbol_type::s_block32': block_sym32(true)
             'symbol_type::s_section': section_sym
             'symbol_type::s_coffgroup': coffgroup_sym
 
@@ -111,6 +114,25 @@ types:
             'symbol_type::s_register_16t': regsym_16
             'symbol_type::s_ldata32_16t': datasym32_16t
             'symbol_type::s_thunk32_st': thunk_sym32(false)
+
+            # CV_SIGNATURE_C11
+            'symbol_type::s_udt_st': udt_sym(false)
+            'symbol_type::s_gproc32_st': procsym32(false)
+            'symbol_type::s_lproc32_st': procsym32(false)
+            'symbol_type::s_bprel32_st': bprel_sym32(false)
+            'symbol_type::s_register_st': reg_sym(false)
+            'symbol_type::s_ldata32_st': data32_sym(false)
+            'symbol_type::s_block32_st': block_sym32(false)
+            'symbol_type::s_constant_st': const_sym(false)
+            'symbol_type::s_compile2_st': compilesym2_sym(false)
+            'symbol_type::s_udt_16t': udtsym_16t
+  udtsym_16t:
+    doc: 'UDTSYM_16t'
+    seq:
+      - id: typind
+        type: u2
+      - id: name
+        type: pascal_string
   datasym32_16t:
     doc: 'DATASYM32_16t (cvinfo.h)'
     seq:
@@ -199,6 +221,9 @@ types:
         encoding: ASCII
   block_sym32:
     doc: 'BLOCKSYM32 (cvinfo.h)'
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: pointer_parent
         type: u4
@@ -211,8 +236,7 @@ types:
       - id: seg
         type: u2
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
   framecookie:
     doc: 'FRAMECOOKIE (cvinfo.h) (NOTE: this element is parsed wrong by Microsoft''s cvdump.exe)'
     seq:
@@ -226,14 +250,16 @@ types:
         type: u1
   reg_sym:
     doc: REGSYM (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: typind
         type: u4
       - id: reg
         type: u2
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
   thunk_sym32:
     doc: THUNKSYM32 (cvinfo.h)
     params:
@@ -273,14 +299,16 @@ types:
         encoding: ASCII
   const_sym:
     doc: CONSTSYM (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: typind
         type: u4
       - id: value
         type: 'numeric'
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
   heap_alloc_site:
     doc: HEAPALLOCSITE (cvinfo.h)
     seq:
@@ -329,12 +357,14 @@ types:
         encoding: ASCII
   udt_sym:
     doc: UDTSYM (cvinfoh)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: typind
         type: u4
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
   label_sym32:
     doc: LABELSYM32 (cvinfo.h)
     params:
@@ -499,6 +529,9 @@ types:
         encoding: ASCII
   data32_sym:
     doc: DATASYM32 (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: type_index
         type: u4
@@ -507,8 +540,7 @@ types:
       - id: segment
         type: u2
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
   cflags_sym:
     doc: CFLAGSSYM (cvinfo.h)
     seq:
@@ -522,6 +554,9 @@ types:
         type: pascal_string
   compilesym2_sym:
     doc: COMPILESYM (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: flags
         type: u4
@@ -540,8 +575,7 @@ types:
       - id: ver_build
         type: u2
       - id: ver_string
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
       - id: command_blocks
         type: envblock_item
         repeat: until
@@ -589,6 +623,9 @@ types:
 
   procsym32:
     doc: PROCSYM32 (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: pointer_parent
         type: u4
@@ -611,8 +648,7 @@ types:
       - id: flags
         type: u1
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
   local_sym:
     doc: LOCALSYM (cvinfo.h)
     seq:
@@ -642,14 +678,16 @@ types:
         type: u4
   bprel_sym32:
     doc: BPRELSYM32 (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: 'off'
         type: u4
       - id: typind
         type: u4
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
 enums:
   symbol_type:
       0x0001: s_compile  # Compile flags symbol

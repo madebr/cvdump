@@ -191,12 +191,14 @@ def main():
                     module_stream = ModiStream(symbols_size=symbols_size, c11_line_size=c11_line_size, c13_line_size=c13_line_size, _io=module_kaitai_stream)
                 module_streams[module_index] = module_stream
             return module_streams[module_index]
-        def get_machine() -> Machine:
+        def get_machine() -> Machine | None:
             nonlocal machine
             if machine is None:
                 dbi = get_dbi()
                 if hasattr(dbi.header, "new_header"):
                     machine = Machine(dbi.header.new_header.machine)
+                    if machine == Machine.IMAGE_FILE_MACHINE_UNKNOWN:
+                        machine = None
             return machine
         if args.create_zip:
             with zipfile.ZipFile(args.create_zip, "w") as zf:
@@ -309,10 +311,9 @@ def main():
                 if module_stream is None:
                     continue
                 print()
-                for symbol in module_stream.symbols.entries:
-                    dump_symbol(symbol, machine_config=machine_config, module_info=mod_info)
-
-                #TODO
+                if mod_info.symbols_size > 0:
+                    for symbol in module_stream.symbols.entries:
+                        dump_symbol(symbol, machine_config=machine_config, module_info=mod_info)
 
         if args.dump_seccontrib:
             print()
