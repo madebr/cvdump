@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import binascii
 import datetime
 import itertools
 import pathlib
@@ -12,6 +13,7 @@ from cvdump.dump_tpi import dump_ipi, dump_tpi
 from cvdump.dump_symbol import dump_symbol, MachineConfig
 from cvdump.machine import Machine
 from cvdump.msf import MsfFile
+from cvdump.kaitai.c13_line_stream import C13LineStream
 from cvdump.kaitai.dbi_stream import DbiStream
 from cvdump.kaitai.info_stream import InfoStream
 from cvdump.kaitai.modi_stream import ModiStream
@@ -27,6 +29,27 @@ class PDBFeatureSig(enum.Enum):
     MinimalDebugInfo = 0x494e494d
 
 
+class CV_SourceChksum_t(enum.IntEnum):
+    CHKSUM_TYPE_NONE = 0
+    CHKSUM_TYPE_MD5 = 1
+    CHKSUM_TYPE_SHA1 = 2
+    CHKSUM_TYPE_SHA_256 = 3
+
+CHECKSUM_TO_NAME: dict[CV_SourceChksum_t, str] = {
+    CV_SourceChksum_t.CHKSUM_TYPE_NONE: "None",
+    CV_SourceChksum_t.CHKSUM_TYPE_MD5: "MD5",
+    CV_SourceChksum_t.CHKSUM_TYPE_SHA1: "SHA1",
+    CV_SourceChksum_t.CHKSUM_TYPE_SHA_256: "SHA_256",
+}
+
+
+def get_hash_name(hash_id: int) -> str:
+    try:
+        return CHECKSUM_TO_NAME.get(CV_SourceChksum_t(hash_id))
+    except (IndexError, ValueError):
+        return f"???({hash_id:02X})"
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Dump PDB to stdout",
@@ -34,7 +57,8 @@ def main():
     )
     parser.add_argument("--ls",  dest="list_streams", action="store_true", help="List MSF streams")
     parser.add_argument("--info",  dest="info", action="store_true", help="PDB Information")
-    parser.add_argument("--names",  dest="names", action="store_true", help="Dump Names stream")
+    parser.add_argument("-l",  dest="dump_lines", action="store_true", help="Source lines")
+    parser.add_argument("--names",  dest="dump_names", action="store_true", help="Dump Names stream")
     parser.add_argument("--modules", "-m", dest="dump_modules", action="store_true", help="Dump modules")
     parser.add_argument("--seccontrib", dest="dump_seccontrib", action="store_true", help="Dump section contributions")
     parser.add_argument("--segment-map", "-x", dest="dump_segment_map", action="store_true", help="Dump segment map")
@@ -128,7 +152,7 @@ def main():
                         named_stream_map[name.decode()] = entry.value
             named_stream_map_initialized = True
             return named_stream_map
-        def get_names():
+        def get_names() -> NamesStream:
             nonlocal names
             nonlocal names_initialized
             if not names_initialized:
@@ -136,11 +160,11 @@ def main():
                 if named_stream_map:
                     names_stream_index = named_stream_map.get("/names")
                     if names_stream_index:
-                        print("/names ->", names_stream_index)
                         names_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(names_stream_index))
                         names = NamesStream(names_kaitai_stream)
             names_initialized = True
             return names
+
         def process_namemap() ->dict[int, str]:
             nonlocal name_index_to_name
             nonlocal name_offset_to_name
@@ -164,6 +188,7 @@ def main():
                     i += 1
             else:
                 print(f"Unsupported names hash version ({names.hash_version}) (PLEASE SHARE THIS PDB!)")
+                raise ValueError
             return name_index_to_name
 
         def get_name_offset_to_name() -> dict[int, str]:
@@ -259,7 +284,7 @@ def main():
                 print(f"Features: {', '.join(PDBFeatureSig(f).name for f in info.contents_vc70.features)}")
             print()
 
-        if args.names:
+        if args.dump_names:
             print()
             print("*** NAMES:")
             print()
@@ -297,6 +322,57 @@ def main():
             for module_index, mod_info in enumerate(get_dbi().module_info.entries, 1):
                 extra = f" \"{mod_info.module_name}\"" if mod_info.object_name != mod_info.module_name else ""
                 print(f"{module_index:04X} \"{mod_info.object_name}\"{extra}")
+
+        if args.dump_lines:
+            print()
+            print("*** LINES")
+            dbi = get_dbi()
+            process_namemap()
+            for module_index, mod_info in enumerate(dbi.module_info.entries):
+                checksums = {}
+
+                print()
+                print(f"** Module: \"{mod_info.module_name}\"")
+                module_stream = get_module_stream(module_index)
+                found_checksum = False
+                for subsection in module_stream.c13_line_info.subsections:
+                    match subsection.header.type:
+                        case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+                            for cksum in subsection.contents.checksums:
+                                checksums[cksum.pos] = cksum
+                            found_checksum = True
+                    if found_checksum:
+                        break
+
+                for subsection in module_stream.c13_line_info.subsections:
+                    match subsection.header.type:
+                        case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+                            pass
+                        case C13LineStream.DebugSSubsectionType.debug_s_lines:
+                            for table_i, table in enumerate(subsection.contents.tables.items):
+                                try:
+                                    cksum = checksums[table.fileid]
+                                except KeyError:
+                                    raise
+                                filename = name_offset_to_name[cksum.name_index].decode()
+                                start = subsection.contents.off_con if table_i == 0 else (subsection.contents.off_con + table.lines[0].offset)
+                                end = (subsection.contents.off_con + subsection.contents.count_con) if table_i + 1 == len(subsection.contents.tables.items) else (subsection.contents.off_con + subsection.contents.tables.items[table_i + 1].lines[0].offset)
+                                print()
+                                print(f"  {filename} ({get_hash_name(cksum.hash_type)}: {binascii.b2a_hex(cksum.hash).decode().upper()}), {subsection.contents.seg_con:04X}:{start:08X}-{end:08X}, line/addr pairs = {table.count_lines}")
+                                print()
+                                for i, line_item in enumerate(table.lines):
+                                    if line_item.line_number_start in (0xfeefee, 0xf00f00):
+                                        print(f"  {line_item.line_number_start:x} {subsection.contents.off_con+line_item.offset:08X}", end="")
+                                    else:
+                                        print(f"  {line_item.line_number_start:5} {subsection.contents.off_con+line_item.offset:08X}", end="")
+                                    if i % 4 == 3 or i == len(table.lines) - 1:
+                                        print()
+                        case C13LineStream.DebugSSubsectionType.debug_s_inlineelines:
+                            # FIXME: display for -inll
+                            pass
+                        case _:
+                            raise ValueError
+
 
         if args.dump_symbols:
             print()
@@ -367,7 +443,7 @@ def main():
                         name = dbi.source_info.buffer[name_offset + 1:name_offset + 1 + len_string].decode("ascii")
                     # FIXME: add hash instead of None.
                     #        e.g. SHA_256: 991883893134C8ECBE6AF8335DF0781BFB779C11684B3367DEF514136241B866
-                    print(f"  {j:>4} {name.decode('ascii')} (None)")
+                    print(f"  {j:>4} {name.decode('ascii')} (HASH TBD)")
                 if module_source_count:
                     print()
                 start_name_index += module_source_count

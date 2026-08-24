@@ -3,6 +3,7 @@ KSC = kaitai-struct-compiler
 KSC_FLAGS := -t python --python-package cvdump.kaitai
 
 SCHEMAS := \
+	c13_line_stream.ksy \
     dbi_stream.ksy \
     info_stream.ksy \
     modi_stream.ksy \

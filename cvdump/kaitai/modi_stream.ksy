@@ -4,6 +4,7 @@ meta:
     - numeric
     - pascal_string
     - strz_or_pascal
+    - c13_line_stream
   endian: le
 params:
   - id: symbols_size
@@ -29,6 +30,7 @@ seq:
     size: c11_line_size
   - id: c13_line_info
     size: c13_line_size
+    type: c13_line_stream
   - id: global_refs_size
     if: signature != 65537
     type: u4

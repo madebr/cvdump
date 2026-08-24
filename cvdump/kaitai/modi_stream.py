@@ -6,6 +6,7 @@ from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from cvdump.kaitai import numeric
 from cvdump.kaitai import pascal_string
 from cvdump.kaitai import strz_or_pascal
+from cvdump.kaitai import c13_line_stream
 from enum import IntEnum
 
 
@@ -241,7 +242,9 @@ class ModiStream(KaitaiStruct):
             self.symbols = ModiStream.SymbolEntries(_io__raw_symbols, self, self._root)
 
         self.c11_line_info = self._io.read_bytes(self.c11_line_size)
-        self.c13_line_info = self._io.read_bytes(self.c13_line_size)
+        self._raw_c13_line_info = self._io.read_bytes(self.c13_line_size)
+        _io__raw_c13_line_info = KaitaiStream(BytesIO(self._raw_c13_line_info))
+        self.c13_line_info = c13_line_stream.C13LineStream(_io__raw_c13_line_info)
         if self.signature != 65537:
             pass
             self.global_refs_size = self._io.read_u4le()
@@ -258,6 +261,7 @@ class ModiStream(KaitaiStruct):
             pass
             self.symbols._fetch_instances()
 
+        self.c13_line_info._fetch_instances()
         if self.signature != 65537:
             pass
 
