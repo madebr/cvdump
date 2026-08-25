@@ -608,7 +608,7 @@ def get_numeric_string(number: TpiStream.Numeric):
         return f"{number.tag}"
     match number.tag:
         case TpiStream.Leaf.LeafType.lf_char:
-            return f"(LF_CHAR) {number.char_}(0x{(number.char_ + 0xff) % 0x100:02X})"
+            return f"(LF_CHAR) {number.char_}(0x{(number.char_ + 0x100) % 0x100:02X})"
         case TpiStream.Leaf.LeafType.lf_short:
             return f"(LF_SHORT) {number.short_}"
         case TpiStream.Leaf.LeafType.lf_ushort:

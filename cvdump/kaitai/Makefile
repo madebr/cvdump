@@ -7,6 +7,7 @@ SCHEMAS := \
 	c13_line_stream.ksy \
 	cv_symbol.ksy \
 	cv_symbol_stream.ksy \
+    gsi_stream.ksy \
     info_stream.ksy \
     modi_stream.ksy \
     msf.ksy \

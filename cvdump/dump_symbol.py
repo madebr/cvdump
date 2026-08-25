@@ -924,13 +924,15 @@ def yes_no(v: int | bool) -> str:
 
 
 
-def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module_info):
+def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module_info, dump_pos: bool=True):
     try:
         symbol_type_name = symbol.record.type.name.upper()
     except AttributeError:
         raise ValueError("WARNING: Unknown record type")
         # symbol_type_name = hex(symbol.record.type)
-    print(f"({symbol.pos:06X}) {symbol_type_name}:", end="")
+    if dump_pos:
+        print(f"({symbol.pos:06X}) ", end="")
+    print(f"{symbol_type_name}:", end="")
     match symbol.record.type:
         case CvSymbol.SymbolType.s_objname | CvSymbol.SymbolType.s_objname_st:
             print(f" Signature: {symbol.record.element.signature:08x}, {symbol.record.element.name.text}")
@@ -1014,8 +1016,8 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
                 print(f", ??? ({symbol.record.element.flags >> 6:0x04x}", end="")
             print(f", {symbol.record.element.name}")
         case CvSymbol.SymbolType.s_gdata32 | CvSymbol.SymbolType.s_ldata32 | CvSymbol.SymbolType.s_gdata32_st | CvSymbol.SymbolType.s_ldata32_st:
-            print(f" [{symbol.record.element.segment:04X}:{symbol.record.element.offset:08X}, Type:", end="")
-            print(f"\t{get_c7_type_name(symbol.record.element.type_index)}, {symbol.record.element.name.text}")
+            print(f" [{symbol.record.element.segment:04X}:{symbol.record.element.offset:08X}], Type:", end="")
+            print(f" {get_c7_type_name(symbol.record.element.type_index):>18}, {symbol.record.element.name.text}")
         case CvSymbol.SymbolType.s_gdata32_16t | CvSymbol.SymbolType.s_ldata32_16t | CvSymbol.SymbolType.s_pub32_16t:
             print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}, Type:", end="")
             print(f"\t{get_c7_type_name(symbol.record.element.typind)}, {symbol.record.element.name.text}")
@@ -1144,7 +1146,7 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
             print_proc_flags(symbol.record.element.flags)
             print()
         case CvSymbol.SymbolType.s_udt | CvSymbol.SymbolType.s_udt_st | CvSymbol.SymbolType.s_udt_16t:
-            print(f" {get_c7_type_name(symbol.record.element.typind):>16}, {symbol.record.element.name.text}")
+            print(f" {get_c7_type_name(symbol.record.element.typind):>18}, {symbol.record.element.name.text}")
         case CvSymbol.SymbolType.s_filestatic:
             print(" ", end="")
             print_local_var_flags(symbol.record.element.flags, symbol.record.element.typind)
@@ -1163,7 +1165,7 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
             print(f" [{symbol.record.element.sect:04X}:{symbol.record.element.off:08X}], ", end="")
             print(f"instr length = {symbol.record.element.cb_instr}, type = {get_c7_type_name(symbol.record.element.typind)}")
         case CvSymbol.SymbolType.s_constant | CvSymbol.SymbolType.s_constant_st:
-            print(f" Type: {get_c7_type_name(symbol.record.element.typind)}, Value: {get_numeric_string(symbol.record.element.value)}, {symbol.record.element.name.text}")
+            print(f" Type: {get_c7_type_name(symbol.record.element.typind):>18}, Value: {get_numeric_string(symbol.record.element.value)}, {symbol.record.element.name.text}")
         case CvSymbol.SymbolType.s_unamespace:
             print(f" {symbol.record.element.name}")
         case CvSymbol.SymbolType.s_thunk32 | CvSymbol.SymbolType.s_thunk32_st:
@@ -1196,13 +1198,13 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
         case CvSymbol.SymbolType.s_coffgroup:
             print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], Cb: {symbol.record.element.cb:08X}, Characteristics = {symbol.record.element.characteristics:08X}, {symbol.record.element.name}")
         case CvSymbol.SymbolType.s_procref | CvSymbol.SymbolType.s_lprocref:
-            print(f" {symbol.record.element.sum_name:08X}, {symbol.record.element.imod:4}, {symbol.record.element.ib_sym:08X} {symbol.record.element.name}")
+            print(f" 0x{symbol.record.element.sum_name:08X}: ({symbol.record.element.imod:4}, {symbol.record.element.ib_sym:08X}) {symbol.record.element.name}")
         case CvSymbol.SymbolType.s_pub32 | CvSymbol.SymbolType.s_pub32_st:
             print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], Flags: {symbol.record.element.flags:08X}, {symbol.record.element.name.text}")
         case CvSymbol.SymbolType.s_procref_st | CvSymbol.SymbolType.s_lprocref_st:
-            print(f" {symbol.record.element.sum_name:08X}, {symbol.record.element.imod:4}, {symbol.record.element.ib_sym:08X} {symbol.name.text}")
+            print(f" 0x{symbol.record.element.sum_name:08X}, ({symbol.record.element.imod:4}, {symbol.record.element.ib_sym:08X}) {symbol.name.text}")
         case CvSymbol.SymbolType.s_constant_16t:
-            print(f" Type: {get_c7_type_name(symbol.record.element.typind)}, Value: {get_numeric_string(symbol.record.element.value)}, {symbol.record.element.name.text}")
+            print(f" Type: {get_c7_type_name(symbol.record.element.typind):>18}, Value: {get_numeric_string(symbol.record.element.value)}, {symbol.record.element.name.text}")
         case CvSymbol.SymbolType.s_end:
             print()
             print()

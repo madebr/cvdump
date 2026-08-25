@@ -16,6 +16,7 @@ from cvdump.msf import MsfFile, MsfStream
 from cvdump.kaitai.c13_line_stream import C13LineStream
 from cvdump.kaitai.cv_symbol_stream import CvSymbolStream
 from cvdump.kaitai.dbi_stream import DbiStream
+from cvdump.kaitai.gsi_stream import GsiStream
 from cvdump.kaitai.info_stream import InfoStream
 from cvdump.kaitai.modi_stream import ModiStream
 from cvdump.kaitai.names_stream import NamesStream
@@ -58,6 +59,7 @@ def main():
     )
     parser.add_argument("--ls",  dest="list_streams", action="store_true", help="List MSF streams")
     parser.add_argument("--info",  dest="info", action="store_true", help="PDB Information")
+    parser.add_argument("-g",  dest="dump_globals", action="store_true", help="Global symbols")
     parser.add_argument("-l",  dest="dump_lines", action="store_true", help="Source lines")
     parser.add_argument("--names",  dest="dump_names", action="store_true", help="Dump Names stream")
     parser.add_argument("--modules", "-m", dest="dump_modules", action="store_true", help="Dump modules")
@@ -114,17 +116,14 @@ def main():
                 dbi = get_dbi()
                 private_symbol_record_stream_symbols = CvSymbolStream(delta_pos=0, _io=kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.symbol_record_stream)))
             return private_symbol_record_stream_symbols
-        # def get_gsi() -> GsiStream:
-        #     nonlocal private_gsi
-        #     if not private_gsi:
-        #         dbi = get_dbi()
-        #         gsi = dbi.header.global_symbol_stream
-        #         print(f"{gsi=}")
-        #         # dbi = get_dbi()
-        #         # # sym_rec_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.global_symbol_stream))
-        #         # gsi_taikai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.global_symbol_stream))
-        #         # gsi = GsiStream(gsi_taikai_stream)
-        #     return gsi
+        def get_gsi() -> GsiStream:
+            nonlocal private_gsi
+            if not private_gsi:
+                dbi = get_dbi()
+                gsi_stream_index = dbi.header.global_symbol_stream
+                ks = kaitaistruct.KaitaiStream(msf_file.create_stream(gsi_stream_index))
+                private_gsi = GsiStream(ks)
+            return private_gsi
         def get_info() -> InfoStream:
             nonlocal private_info
             if not private_info:
@@ -455,6 +454,19 @@ def main():
                     else:
                         pass
 
+        if args.dump_globals:
+            print()
+            print("*** GLOBALS")
+            print()
+
+            symbol_records = get_symbol_record_stream_symbols()
+            symbol_record_lut = {}
+            for symbol in symbol_records.entries:
+                symbol_record_lut[symbol.pos] = symbol
+            gsi = get_gsi()
+            for record in gsi.hash_records.entries:
+                symbol = symbol_record_lut[record.offset_symbol_record_stream_plus_one - 1]
+                dump_symbol(symbol, None, None, dump_pos=False)
 
         if args.dump_symbols:
             print()
