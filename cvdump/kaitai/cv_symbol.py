@@ -233,12 +233,20 @@ class CvSymbol(KaitaiStruct):
         self._raw_record = self._io.read_bytes(self.record_size)
         _io__raw_record = KaitaiStream(BytesIO(self._raw_record))
         self.record = CvSymbol.Record(_io__raw_record, self, self._root)
+        if  ((self.record.type == CvSymbol.SymbolType.s_procref_st) or (self.record.type == CvSymbol.SymbolType.s_lprocref_st)) :
+            pass
+            self.name = pascal_string.PascalString(self._io)
+
         self.trailing_padding = self._io.read_bytes((4 - self._io.pos() % 4) % 4)
 
 
     def _fetch_instances(self):
         pass
         self.record._fetch_instances()
+        if  ((self.record.type == CvSymbol.SymbolType.s_procref_st) or (self.record.type == CvSymbol.SymbolType.s_lprocref_st)) :
+            pass
+            self.name._fetch_instances()
+
 
     class BlockSym32(KaitaiStruct):
         """BLOCKSYM32 (cvinfo.h)."""
@@ -453,6 +461,26 @@ class CvSymbol(KaitaiStruct):
             self.typind = self._io.read_u4le()
             self.value = numeric.Numeric(self._io)
             self.name = strz_or_pascal.StrzOrPascal(self.is_strz, self._io)
+
+
+        def _fetch_instances(self):
+            pass
+            self.value._fetch_instances()
+            self.name._fetch_instances()
+
+
+    class Constsym16t(KaitaiStruct):
+        """CONSTSYM_16t (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(CvSymbol.Constsym16t, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.typind = self._io.read_u2le()
+            self.value = numeric.Numeric(self._io)
+            self.name = pascal_string.PascalString(self._io)
 
 
         def _fetch_instances(self):
@@ -1073,21 +1101,23 @@ class CvSymbol(KaitaiStruct):
 
     class Pubsym32(KaitaiStruct):
         """PUBSYM32 (cvinfo.h)."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, is_strz, _io, _parent=None, _root=None):
             super(CvSymbol.Pubsym32, self).__init__(_io)
             self._parent = _parent
             self._root = _root
+            self.is_strz = is_strz
             self._read()
 
         def _read(self):
             self.flags = self._io.read_u4le()
             self.off = self._io.read_u4le()
             self.seg = self._io.read_u2le()
-            self.name = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+            self.name = strz_or_pascal.StrzOrPascal(self.is_strz, self._io)
 
 
         def _fetch_instances(self):
             pass
+            self.name._fetch_instances()
 
 
     class Record(KaitaiStruct):
@@ -1148,6 +1178,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_constant:
                 pass
                 self.element = CvSymbol.ConstSym(True, self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_constant_16t:
+                pass
+                self.element = CvSymbol.Constsym16t(self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_constant_st:
                 pass
                 self.element = CvSymbol.ConstSym(False, self._io, self, self._root)
@@ -1190,6 +1223,12 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_gdata32:
                 pass
                 self.element = CvSymbol.Data32Sym(True, self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_gdata32_16t:
+                pass
+                self.element = CvSymbol.Datasym3216t(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_gdata32_st:
+                pass
+                self.element = CvSymbol.Data32Sym(False, self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_gproc32:
                 pass
                 self.element = CvSymbol.Procsym32(True, self._io, self, self._root)
@@ -1241,6 +1280,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_lprocref:
                 pass
                 self.element = CvSymbol.Refsym2(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_lprocref_st:
+                pass
+                self.element = CvSymbol.Refsym(self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_manconstant:
                 pass
                 self.element = CvSymbol.ConstSym(True, self._io, self, self._root)
@@ -1253,9 +1295,18 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_procref:
                 pass
                 self.element = CvSymbol.Refsym2(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_procref_st:
+                pass
+                self.element = CvSymbol.Refsym(self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_pub32:
                 pass
-                self.element = CvSymbol.Pubsym32(self._io, self, self._root)
+                self.element = CvSymbol.Pubsym32(True, self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_pub32_16t:
+                pass
+                self.element = CvSymbol.Datasym3216t(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_pub32_st:
+                pass
+                self.element = CvSymbol.Pubsym32(False, self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_register:
                 pass
                 self.element = CvSymbol.RegSym(True, self._io, self, self._root)
@@ -1342,6 +1393,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_constant:
                 pass
                 self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_constant_16t:
+                pass
+                self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_constant_st:
                 pass
                 self.element._fetch_instances()
@@ -1382,6 +1436,12 @@ class CvSymbol(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_gdata32:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_gdata32_16t:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_gdata32_st:
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_gproc32:
@@ -1435,6 +1495,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_lprocref:
                 pass
                 self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_lprocref_st:
+                pass
+                self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_manconstant:
                 pass
                 self.element._fetch_instances()
@@ -1447,7 +1510,16 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_procref:
                 pass
                 self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_procref_st:
+                pass
+                self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_pub32:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_pub32_16t:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_pub32_st:
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_register:
@@ -1483,6 +1555,25 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_unamespace:
                 pass
                 self.element._fetch_instances()
+
+
+    class Refsym(KaitaiStruct):
+        """REFSYM (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(CvSymbol.Refsym, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.sum_name = self._io.read_u4le()
+            self.ib_sym = self._io.read_u4le()
+            self.imod = self._io.read_u2le()
+            self.us_fill = self._io.read_u2le()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class Refsym2(KaitaiStruct):

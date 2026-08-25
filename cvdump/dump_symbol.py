@@ -1013,10 +1013,10 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
             if symbol.record.element.flags & 0xffc0:
                 print(f", ??? ({symbol.record.element.flags >> 6:0x04x}", end="")
             print(f", {symbol.record.element.name}")
-        case CvSymbol.SymbolType.s_gdata32 | CvSymbol.SymbolType.s_ldata32 | CvSymbol.SymbolType.s_ldata32_st:
+        case CvSymbol.SymbolType.s_gdata32 | CvSymbol.SymbolType.s_ldata32 | CvSymbol.SymbolType.s_gdata32_st | CvSymbol.SymbolType.s_ldata32_st:
             print(f" [{symbol.record.element.segment:04X}:{symbol.record.element.offset:08X}, Type:", end="")
             print(f"\t{get_c7_type_name(symbol.record.element.type_index)}, {symbol.record.element.name.text}")
-        case CvSymbol.SymbolType.s_ldata32_16t:
+        case CvSymbol.SymbolType.s_gdata32_16t | CvSymbol.SymbolType.s_ldata32_16t | CvSymbol.SymbolType.s_pub32_16t:
             print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}, Type:", end="")
             print(f"\t{get_c7_type_name(symbol.record.element.typind)}, {symbol.record.element.name.text}")
         case CvSymbol.SymbolType.s_buildinfo:
@@ -1197,8 +1197,12 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
             print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], Cb: {symbol.record.element.cb:08X}, Characteristics = {symbol.record.element.characteristics:08X}, {symbol.record.element.name}")
         case CvSymbol.SymbolType.s_procref | CvSymbol.SymbolType.s_lprocref:
             print(f" {symbol.record.element.sum_name:08X}, {symbol.record.element.imod:4}, {symbol.record.element.ib_sym:08X} {symbol.record.element.name}")
-        case CvSymbol.SymbolType.s_pub32:
-            print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], Flags: {symbol.record.element.flags:08X}, {symbol.record.element.name}")
+        case CvSymbol.SymbolType.s_pub32 | CvSymbol.SymbolType.s_pub32_st:
+            print(f" [{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}], Flags: {symbol.record.element.flags:08X}, {symbol.record.element.name.text}")
+        case CvSymbol.SymbolType.s_procref_st | CvSymbol.SymbolType.s_lprocref_st:
+            print(f" {symbol.record.element.sum_name:08X}, {symbol.record.element.imod:4}, {symbol.record.element.ib_sym:08X} {symbol.name.text}")
+        case CvSymbol.SymbolType.s_constant_16t:
+            print(f" Type: {get_c7_type_name(symbol.record.element.typind)}, Value: {get_numeric_string(symbol.record.element.value)}, {symbol.record.element.name.text}")
         case CvSymbol.SymbolType.s_end:
             print()
             print()

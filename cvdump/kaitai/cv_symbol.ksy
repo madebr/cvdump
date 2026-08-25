@@ -15,6 +15,10 @@ seq:
   - id: record
     type: record
     size: record_size
+  - id: name
+    doc: 'There is a hidden name at the end of some records (tii.cpp -> stProcRefName)'
+    if: 'record.type == symbol_type::s_procref_st or record.type == symbol_type::s_lprocref_st'
+    type: pascal_string
   - id: trailing_padding
     size: (4 - ((_io.pos) % 4)) % 4
 types:
@@ -96,7 +100,14 @@ types:
             'symbol_type::s_lprocref': refsym2
             'symbol_type::s_procref': refsym2
             'symbol_type::s_gdata32': data32_sym(true)
-            'symbol_type::s_pub32': pubsym32
+            'symbol_type::s_pub32': pubsym32(true)
+            'symbol_type::s_pub32_st': pubsym32(false)
+            'symbol_type::s_gdata32_st': data32_sym(false)
+            'symbol_type::s_procref_st': refsym
+            'symbol_type::s_lprocref_st': refsym
+            'symbol_type::s_pub32_16t': datasym32_16t
+            'symbol_type::s_constant_16t': constsym_16t
+            'symbol_type::s_gdata32_16t': datasym32_16t
   udtsym_16t:
     doc: 'UDTSYM_16t'
     seq:
@@ -659,6 +670,17 @@ types:
         type: u4
       - id: name
         type: strz_or_pascal(is_strz)
+  refsym:
+    doc: REFSYM (cvinfo.h)
+    seq:
+      - id: sum_name
+        type: u4
+      - id: ib_sym
+        type: u4
+      - id: imod
+        type: u2
+      - id: us_fill
+        type: u2
   refsym2:
     doc: REFSYM2 (cvinfo.h)
     seq:
@@ -673,6 +695,9 @@ types:
         encoding: ASCII
   pubsym32:
     doc: PUBSYM32 (cvinfo.h)
+    params:
+      - id: is_strz
+        type: bool
     seq:
       - id: flags
         type: u4
@@ -681,8 +706,16 @@ types:
       - id: seg
         type: u2
       - id: name
-        type: strz
-        encoding: ASCII
+        type: strz_or_pascal(is_strz)
+  constsym_16t:
+    doc: CONSTSYM_16t (cvinfo.h)
+    seq:
+      - id: typind
+        type: u2
+      - id: value
+        type: numeric
+      - id: name
+        type: pascal_string
 enums:
   symbol_type:
       0x0001: s_compile  # Compile flags symbol
