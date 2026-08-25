@@ -51,6 +51,8 @@ types:
         value: 'is_new_header ? new_header.version_header : 0'
       global_symbol_stream:
         value: 'is_new_header ? new_header.global_symbol_stream : (magic_b0 + magic_b1 * 256)'
+      public_symbol_stream:
+        value: 'is_new_header ? new_header.public_symbol_stream : old_header.public_symbol_stream'
       module_info_size:
         value: 'is_new_header ? new_header.module_info_size : old_header.module_info_size'
       section_contribution_size:

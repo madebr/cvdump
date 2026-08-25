@@ -111,11 +111,12 @@ class MsfFile:
     HEADERBLOCK_STREAM_NAME = "/src/headerblock"
     NAMES_STREAM_NAME = "/names"
 
-    def __init__(self, stream: typing.IO, block_size: int, stream_sizes: list[int], stream_blocks: list[int]):
+    def __init__(self, stream: typing.IO, block_size: int, stream_sizes: list[int], stream_blocks: list[int], msf: Msf):
         self.stream = stream
         self.block_size = block_size
         self.stream_block_maps: list[list[int]] = []
         self.stream_sizes = stream_sizes
+        self.msf = msf
 
         stream_block_start = 0
         for stream_size in stream_sizes:
@@ -159,7 +160,7 @@ class MsfFile:
             stream_sizes = [sz.size for sz in small_msf_stream_directory.stream_sizes]
             block_size = msf.small_superblock.block_size
             stream_blocks = small_msf_stream_directory.stream_blocks
-        return MsfFile(stream=stream, block_size=block_size, stream_sizes=stream_sizes, stream_blocks=stream_blocks)
+        return MsfFile(stream=stream, block_size=block_size, stream_sizes=stream_sizes, stream_blocks=stream_blocks, msf=msf)
 
     def create_stream(self, index: int) -> MsfStream:
         return MsfStream(stream=self.stream, size=self.stream_sizes[index], block_size=self.block_size, block_map=self.stream_block_maps[index])

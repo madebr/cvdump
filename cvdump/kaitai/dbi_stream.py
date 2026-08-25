@@ -160,6 +160,14 @@ class DbiStream(KaitaiStruct):
             return getattr(self, '_m_module_info_size', None)
 
         @property
+        def public_symbol_stream(self):
+            if hasattr(self, '_m_public_symbol_stream'):
+                return self._m_public_symbol_stream
+
+            self._m_public_symbol_stream = (self.new_header.public_symbol_stream if self.is_new_header else self.old_header.public_symbol_stream)
+            return getattr(self, '_m_public_symbol_stream', None)
+
+        @property
         def section_contribution_size(self):
             if hasattr(self, '_m_section_contribution_size'):
                 return self._m_section_contribution_size

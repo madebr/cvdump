@@ -12,8 +12,9 @@ import zipfile
 from cvdump.dump_tpi import dump_ipi, dump_tpi
 from cvdump.dump_symbol import dump_symbol, MachineConfig
 from cvdump.machine import Machine
-from cvdump.msf import MsfFile
+from cvdump.msf import MsfFile, MsfStream
 from cvdump.kaitai.c13_line_stream import C13LineStream
+from cvdump.kaitai.cv_symbol_stream import CvSymbolStream
 from cvdump.kaitai.dbi_stream import DbiStream
 from cvdump.kaitai.info_stream import InfoStream
 from cvdump.kaitai.modi_stream import ModiStream
@@ -65,7 +66,8 @@ def main():
     parser.add_argument("--source-files", "-sf", dest="dump_source_files", action="store_true", help="Dump source files")
     parser.add_argument("-id", dest="dump_id", action="store_true", help="Dump types (TPI stream)")
     parser.add_argument("--types", "-t", dest="dump_types", action="store_true", help="Dump IDs (IPI stream)")
-    parser.add_argument("--symbols", "-s", dest="dump_symbols", action="store_true", help="Dump symbols")
+    parser.add_argument("--symbols", "-s", dest="dump_symbols", action="store_true", help="Dump symbols (from modules)")
+    parser.add_argument("--symbol-records", dest="dump_symbol_records", action="store_true", help="Dump symbols (from symbol record stream)")
     parser.add_argument("--create-zip", type=pathlib.Path, help="Write streams to zip")
     parser.add_argument("pdb_path", metavar="pdb", type=pathlib.Path, help="PDB path")
     args = parser.parse_args()
@@ -73,40 +75,48 @@ def main():
     with args.pdb_path.open("rb") as f:
         msf_file = MsfFile.create(f)
 
-        dbi = None
-        tpi = None
-        gsi = None
-        info = None
-        named_stream_map = None
-        named_stream_map_initialized = False
-        names = None
-        names_initialized = False
-        name_index_to_name = None
-        name_offset_to_name = None
-        module_streams = {}
-        machine = None
+        private_dbi = None
+        private_ipi = None
+        private_tpi = None
+        private_symbol_record_stream_symbols = None
+        private_gsi = None
+        private_info = None
+        private_named_stream_map = None
+        private_named_stream_map_initialized = False
+        private_names = None
+        private_names_initialized = False
+        private_name_index_to_name = None
+        private_name_offset_to_name = None
+        private_module_streams = {}
+        private_machine = None
 
         def get_dbi() -> DbiStream:
-            nonlocal dbi
-            if not dbi:
+            nonlocal private_dbi
+            if not private_dbi:
                 dbi_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(MsfFile.DBI_STREAM_INDEX))
-                dbi = DbiStream(dbi_kaitai_stream)
-            return dbi
+                private_dbi = DbiStream(dbi_kaitai_stream)
+            return private_dbi
         def get_tpi() -> TpiStream:
-            nonlocal tpi
-            if not tpi:
+            nonlocal private_tpi
+            if not private_tpi:
                 tpi_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(MsfFile.TPI_STREAM_INDEX))
-                tpi = TpiStream(tpi_kaitai_stream)
-            return tpi
+                private_tpi = TpiStream(tpi_kaitai_stream)
+            return private_tpi
         def get_ipi() -> TpiStream:
-            nonlocal tpi
-            if not tpi:
+            nonlocal private_ipi
+            if not private_ipi:
                 tpi_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(MsfFile.IPI_STREAM_INDEX))
-                tpi = TpiStream(tpi_kaitai_stream)
-            return tpi
+                private_ipi = TpiStream(tpi_kaitai_stream)
+            return private_ipi
+        def get_symbol_record_stream_symbols() -> CvSymbolStream:
+            nonlocal private_symbol_record_stream_symbols
+            if not private_symbol_record_stream_symbols:
+                dbi = get_dbi()
+                private_symbol_record_stream_symbols = CvSymbolStream(delta_pos=0, _io=kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.symbol_record_stream)))
+            return private_symbol_record_stream_symbols
         # def get_gsi() -> GsiStream:
-        #     nonlocal gsi
-        #     if not gsi:
+        #     nonlocal private_gsi
+        #     if not private_gsi:
         #         dbi = get_dbi()
         #         gsi = dbi.header.global_symbol_stream
         #         print(f"{gsi=}")
@@ -116,17 +126,17 @@ def main():
         #         # gsi = GsiStream(gsi_taikai_stream)
         #     return gsi
         def get_info() -> InfoStream:
-            nonlocal info
-            if not info:
+            nonlocal private_info
+            if not private_info:
                 info_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(1))
-                info = InfoStream(info_kaitai_stream)
-            return info
+                private_info = InfoStream(info_kaitai_stream)
+            return private_info
         def get_named_stream_map() -> dict[str, int] | None:
-            nonlocal named_stream_map
-            nonlocal named_stream_map_initialized
-            if not named_stream_map_initialized:
+            nonlocal private_named_stream_map
+            nonlocal private_named_stream_map_initialized
+            if not private_named_stream_map_initialized:
                 info = get_info()
-                named_stream_map = {}
+                private_named_stream_map = {}
                 # WRONG: use extra bits to check whether key is present
                 # also verify whether it is possible to build a map (and only lookup)
                 if hasattr(info, "contents_vc50"):
@@ -135,41 +145,41 @@ def main():
                             name = info.contents_vc50.string_buffer[entry.key:pos_end]
                         else:
                             name = info.contents_vc50.string_buffer[entry.key:]
-                        named_stream_map[name.decode()] = entry.value
+                        private_named_stream_map[name.decode()] = entry.value
                 if hasattr(info, "contents_vc98"):
                     for entry in info.contents_vc98.entries:
                         if (pos_end := info.contents_vc98.string_buffer.find(0, entry.key)) != -1:
                             name = info.contents_vc98.string_buffer[entry.key:pos_end]
                         else:
                             name = info.contents_vc98.string_buffer[entry.key:]
-                        named_stream_map[name.decode()] = entry.value
+                        private_named_stream_map[name.decode()] = entry.value
                 if hasattr(info, "contents_vc70"):
                     for entry in info.contents_vc70.entries:
                         if (pos_end := info.contents_vc70.string_buffer.find(0, entry.key)) != -1:
                             name = info.contents_vc70.string_buffer[entry.key:pos_end]
                         else:
                             name = info.contents_vc70.string_buffer[entry.key:]
-                        named_stream_map[name.decode()] = entry.value
-            named_stream_map_initialized = True
-            return named_stream_map
+                        private_named_stream_map[name.decode()] = entry.value
+            private_named_stream_map_initialized = True
+            return private_named_stream_map
         def get_names() -> NamesStream:
-            nonlocal names
-            nonlocal names_initialized
-            if not names_initialized:
+            nonlocal private_names
+            nonlocal private_names_initialized
+            if not private_names_initialized:
                 named_stream_map = get_named_stream_map()
                 if named_stream_map:
                     names_stream_index = named_stream_map.get("/names")
                     if names_stream_index:
                         names_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(names_stream_index))
-                        names = NamesStream(names_kaitai_stream)
-            names_initialized = True
-            return names
+                        private_names = NamesStream(names_kaitai_stream)
+            private_names_initialized = True
+            return private_names
 
         def process_namemap() ->dict[int, str]:
-            nonlocal name_index_to_name
-            nonlocal name_offset_to_name
-            name_index_to_name = {}
-            name_offset_to_name = {}
+            nonlocal private_name_index_to_name
+            nonlocal private_name_offset_to_name
+            private_name_index_to_name = {}
+            private_name_offset_to_name = {}
             names = get_names()
             if names:
                 if names.hash_version == 1:
@@ -183,24 +193,24 @@ def main():
                         else:
                             text = names.string_buffer[string_start:string_end]
                             next_string_start = string_end + 1
-                        name_index_to_name[i] = text
-                        name_offset_to_name[string_start] = text
+                        private_name_index_to_name[i] = text
+                        private_name_offset_to_name[string_start] = text
                         string_start = next_string_start
                         i += 1
                 else:
                     print(f"Unsupported names hash version ({names.hash_version}) (PLEASE SHARE THIS PDB!)")
                     raise ValueError
-            return name_index_to_name
+            return private_name_index_to_name
 
         def get_name_offset_to_name() -> dict[int, str]:
-            nonlocal name_offset_to_name
-            if name_offset_to_name is None:
+            nonlocal private_name_offset_to_name
+            if private_name_offset_to_name is None:
                 process_namemap()
-            return name_offset_to_name
+            return private_name_offset_to_name
 
         def get_module_stream(module_index: int) -> ModiStream:
-            nonlocal module_streams
-            if module_index not in module_streams:
+            nonlocal private_module_streams
+            if module_index not in private_module_streams:
                 dbi = get_dbi()
                 dbi_module_info_entry = dbi.module_info.entries[module_index]
                 stream_index = dbi_module_info_entry.debug_info_stream
@@ -215,17 +225,17 @@ def main():
                         c13_line_size = 0
                     module_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(stream_index))
                     module_stream = ModiStream(symbols_size=symbols_size, c11_line_size=c11_line_size, c13_line_size=c13_line_size, _io=module_kaitai_stream)
-                module_streams[module_index] = module_stream
-            return module_streams[module_index]
+                private_module_streams[module_index] = module_stream
+            return private_module_streams[module_index]
         def get_machine() -> Machine | None:
-            nonlocal machine
-            if machine is None:
+            nonlocal private_machine
+            if private_machine is None:
                 dbi = get_dbi()
                 if hasattr(dbi.header, "new_header"):
-                    machine = Machine(dbi.header.new_header.machine)
-                    if machine == Machine.IMAGE_FILE_MACHINE_UNKNOWN:
-                        machine = None
-            return machine
+                    private_machine = Machine(dbi.header.new_header.machine)
+                    if private_machine == Machine.IMAGE_FILE_MACHINE_UNKNOWN:
+                        private_machine = None
+            return private_machine
         if args.create_zip:
             with zipfile.ZipFile(args.create_zip, "w") as zf:
                 w = len(f"{msf_file.count_streams:d}")
@@ -236,11 +246,42 @@ def main():
         if args.list_streams:
             print("*** MSF Stream info")
             print()
+            print("Blocks:")
             print(f"Block size = {msf_file.block_size} (0x{msf_file.block_size:x})")
+            dbi = get_dbi()
+            if msf_file.msf.is_big_msf:
+                print(f"MSF free blockmap: {msf_file.msf.big_superblock.free_block_map_block}")
+                print(f"MSF blockmap: {msf_file.msf.big_superblock.block_map_address}")
+            else:
+                print(f"MSF free blockmap: {msf_file.msf.small_superblock.free_block_map_block}")
+            print()
+            print("Streams:")
+            print(f"TPI stream: {MsfFile.TPI_STREAM_INDEX}")
+            print(f"DBI stream: {MsfFile.DBI_STREAM_INDEX}")
+            print(f"IPI stream: {MsfFile.IPI_STREAM_INDEX}")
+            print(f"Global symbol stream: {dbi.header.global_symbol_stream}")
+            print(f"Public symbol stream: {dbi.header.public_symbol_stream}")
+            print(f"Symbol record stream: {dbi.header.symbol_record_stream}")
+            mfc_stream = None
+            if hasattr(dbi.header, "new_header"):
+                mfc_stream = dbi.header.new_header.mfc_type_server_stream
+                if mfc_stream == 0:
+                    mfc_stream = None
+            print(f"MFC type server stream: {mfc_stream if mfc_stream is not None else 'n/a'}")
+            nsm = get_named_stream_map()
+            print("Named streams: ", end="")
+            if nsm is None:
+                print("none")
+            else:
+                print()
+                for stream_name, stream_index in nsm.items():
+                    print(f"  - '{stream_name}': {stream_index}")
+
+            # FIXME: print named streams
+
             print()
             print("Module streams")
-            print("stream symbol      c11_line   c13_line   name")
-            dbi = get_dbi()
+            print("stream symbol   c11_line c13_line name")
             for modi, mod_info in enumerate(get_dbi().module_info.entries, 1):
                 debug_info_stream = mod_info.debug_info_stream
                 if debug_info_stream == 0xffff:
@@ -251,7 +292,7 @@ def main():
                 else:
                     c11_line_size = mod_info.lines_size
                     c13_line_size = 0
-                print(f"{debug_info_stream:>6} 0x{mod_info.symbols_size:08x}  0x{c11_line_size:08x} 0x{c13_line_size:08x} {mod_info.module_name}")
+                print(f"{debug_info_stream:>6} 0x{mod_info.symbols_size:06x} 0x{c11_line_size:06x} 0x{c13_line_size:06x} {mod_info.module_name}")
             for stream_index in range(len(msf_file.stream_sizes)):
                 print()
                 print(f"Stream {stream_index}:")
@@ -357,6 +398,7 @@ def main():
                                             cksum = checksums[table.fileid]
                                         except KeyError:
                                             raise
+                                        name_offset_to_name = get_name_offset_to_name()
                                         filename = name_offset_to_name[cksum.name_index].decode()
                                         start = subsection.contents.off_con if table_i == 0 else (subsection.contents.off_con + table.lines[0].offset)
                                         end = (subsection.contents.off_con + subsection.contents.count_con) if table_i + 1 == len(subsection.contents.tables.items) else (subsection.contents.off_con + subsection.contents.tables.items[table_i + 1].lines[0].offset)
@@ -430,6 +472,15 @@ def main():
                 if mod_info.symbols_size > 0:
                     for symbol in module_stream.symbols.entries:
                         dump_symbol(symbol, machine_config=machine_config, module_info=mod_info)
+
+        if args.dump_symbol_records:
+            print()
+            print("*** SYMBOL RECORDS")
+            dbi = get_dbi()
+            symbol_records = get_symbol_record_stream_symbols()
+            machine_config = MachineConfig(machine=get_machine())
+            for symbol in symbol_records.entries:
+                dump_symbol(symbol, machine_config=machine_config, module_info=None)
 
         if args.dump_seccontrib:
             print()
