@@ -171,24 +171,25 @@ def main():
             name_index_to_name = {}
             name_offset_to_name = {}
             names = get_names()
-            if names.hash_version == 1:
-                i = 0
-                string_start = 0
-                while string_start is not None:
-                    string_end = names.string_buffer.find(0, string_start)
-                    if string_end == -1:
-                        text = names.string_buffer[string_start:]
-                        next_string_start = None
-                    else:
-                        text = names.string_buffer[string_start:string_end]
-                        next_string_start = string_end + 1
-                    name_index_to_name[i] = text
-                    name_offset_to_name[string_start] = text
-                    string_start = next_string_start
-                    i += 1
-            else:
-                print(f"Unsupported names hash version ({names.hash_version}) (PLEASE SHARE THIS PDB!)")
-                raise ValueError
+            if names:
+                if names.hash_version == 1:
+                    i = 0
+                    string_start = 0
+                    while string_start is not None:
+                        string_end = names.string_buffer.find(0, string_start)
+                        if string_end == -1:
+                            text = names.string_buffer[string_start:]
+                            next_string_start = None
+                        else:
+                            text = names.string_buffer[string_start:string_end]
+                            next_string_start = string_end + 1
+                        name_index_to_name[i] = text
+                        name_offset_to_name[string_start] = text
+                        string_start = next_string_start
+                        i += 1
+                else:
+                    print(f"Unsupported names hash version ({names.hash_version}) (PLEASE SHARE THIS PDB!)")
+                    raise ValueError
             return name_index_to_name
 
         def get_name_offset_to_name() -> dict[int, str]:
@@ -334,44 +335,80 @@ def main():
                 print()
                 print(f"** Module: \"{mod_info.module_name}\"")
                 module_stream = get_module_stream(module_index)
-                found_checksum = False
-                for subsection in module_stream.c13_line_info.subsections:
-                    match subsection.header.type:
-                        case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
-                            for cksum in subsection.contents.checksums:
-                                checksums[cksum.pos] = cksum
-                            found_checksum = True
-                    if found_checksum:
-                        break
+                if module_stream:
+                    if module_stream.c13_line_size:
+                        found_checksum = False
+                        for subsection in module_stream.c13_line_info.subsections:
+                            match subsection.header.type:
+                                case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+                                    for cksum in subsection.contents.checksums:
+                                        checksums[cksum.pos] = cksum
+                                    found_checksum = True
+                            if found_checksum:
+                                break
 
-                for subsection in module_stream.c13_line_info.subsections:
-                    match subsection.header.type:
-                        case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
-                            pass
-                        case C13LineStream.DebugSSubsectionType.debug_s_lines:
-                            for table_i, table in enumerate(subsection.contents.tables.items):
-                                try:
-                                    cksum = checksums[table.fileid]
-                                except KeyError:
-                                    raise
-                                filename = name_offset_to_name[cksum.name_index].decode()
-                                start = subsection.contents.off_con if table_i == 0 else (subsection.contents.off_con + table.lines[0].offset)
-                                end = (subsection.contents.off_con + subsection.contents.count_con) if table_i + 1 == len(subsection.contents.tables.items) else (subsection.contents.off_con + subsection.contents.tables.items[table_i + 1].lines[0].offset)
-                                print()
-                                print(f"  {filename} ({get_hash_name(cksum.hash_type)}: {binascii.b2a_hex(cksum.hash).decode().upper()}), {subsection.contents.seg_con:04X}:{start:08X}-{end:08X}, line/addr pairs = {table.count_lines}")
-                                print()
-                                for i, line_item in enumerate(table.lines):
-                                    if line_item.line_number_start in (0xfeefee, 0xf00f00):
-                                        print(f"  {line_item.line_number_start:x} {subsection.contents.off_con+line_item.offset:08X}", end="")
-                                    else:
-                                        print(f"  {line_item.line_number_start:5} {subsection.contents.off_con+line_item.offset:08X}", end="")
-                                    if i % 4 == 3 or i == len(table.lines) - 1:
+                        for subsection in module_stream.c13_line_info.subsections:
+                            match subsection.header.type:
+                                case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+                                    pass
+                                case C13LineStream.DebugSSubsectionType.debug_s_lines:
+                                    for table_i, table in enumerate(subsection.contents.tables.items):
+                                        try:
+                                            cksum = checksums[table.fileid]
+                                        except KeyError:
+                                            raise
+                                        filename = name_offset_to_name[cksum.name_index].decode()
+                                        start = subsection.contents.off_con if table_i == 0 else (subsection.contents.off_con + table.lines[0].offset)
+                                        end = (subsection.contents.off_con + subsection.contents.count_con) if table_i + 1 == len(subsection.contents.tables.items) else (subsection.contents.off_con + subsection.contents.tables.items[table_i + 1].lines[0].offset)
                                         print()
-                        case C13LineStream.DebugSSubsectionType.debug_s_inlineelines:
-                            # FIXME: display for -inll
-                            pass
-                        case _:
-                            raise ValueError
+                                        print(f"  {filename} ({get_hash_name(cksum.hash_type)}: {binascii.b2a_hex(cksum.hash).decode().upper()}), {subsection.contents.seg_con:04X}:{start:08X}-{end:08X}, line/addr pairs = {table.count_lines}")
+                                        print()
+                                        for i, line_item in enumerate(table.lines):
+                                            if line_item.line_number_start in (0xfeefee, 0xf00f00):
+                                                print(f"  {line_item.line_number_start:x} {subsection.contents.off_con+line_item.offset:08X}", end="")
+                                            else:
+                                                print(f"  {line_item.line_number_start:5} {subsection.contents.off_con+line_item.offset:08X}", end="")
+                                            if i % 4 == 3 or i == len(table.lines) - 1:
+                                                print()
+                                case C13LineStream.DebugSSubsectionType.debug_s_inlineelines:
+                                    # FIXME: display for -inll
+                                    pass
+                                case _:
+                                    raise ValueError
+                    elif module_stream.c11_line_size:
+                        import cvdump.kaitai.omf
+                        import io
+                        bs = io.BytesIO(module_stream.c11_line_info)
+                        ks = kaitaistruct.KaitaiStream(bs)
+                        sm = cvdump.kaitai.omf.Omf.OmfSourceModule(ks)
+                        if False:
+                            print("  Contributor Segments:")
+                            for iseg in range(sm.c_seg):
+                                print(f"    {sm.unks[iseg]:04X}:{sm.segment_ranges[iseg].begin:08X}-{sm.segment_ranges[iseg].end:08X}")
+
+                        for ifile in range(sm.c_file):
+                            bs.seek(sm.file_starts[ifile])
+                            assert bs.tell() == sm.file_starts[ifile]
+                            sf = cvdump.kaitai.omf.Omf.OmfSourceFile(ks)
+                            for iseg in range(sf.c_seg):
+                                bs.seek(sf.start_lines[iseg])
+                                sl = cvdump.kaitai.omf.Omf.OmfSourceLine(ks)
+                                print()
+
+                                end = sf.ranges[iseg].end
+                                # cvdump.exe adds 1 to range
+                                end += 1
+
+                                print(f"  {sf.name.text} (None), {sl.seg:04X}:{sf.ranges[iseg].begin:08X}-{end:08X}, line/addr pairs = {sl.count_lines}")
+
+                                for i in range(sl.count_lines):
+                                    if i % 4 == 0:
+                                        print()
+                                    print(f" {sl.lines[i]:6} {sl.offsets[i]:08X}", end="")
+                                if sl.count_lines != 0:
+                                    print()
+                    else:
+                        pass
 
 
         if args.dump_symbols:

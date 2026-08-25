@@ -10,6 +10,7 @@ SCHEMAS := \
     msf.ksy \
     names_stream.ksy \
     numeric.ksy \
+    omf.ksy \
     pascal_string.ksy \
     strz_or_pascal.ksy \
     tpi_stream.ksy
