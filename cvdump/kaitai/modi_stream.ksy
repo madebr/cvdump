@@ -16,6 +16,7 @@ params:
 seq:
   - id: signature
     type: u4
+    if: symbols_size > 0
     valid:
       any-of: [65537, 1, 2, 4]
       # CV_SIGNATURE_C6   (0) # Actual signature is >64K
@@ -32,10 +33,12 @@ seq:
     size: c13_line_size
     type: c13_line_stream
   - id: global_refs_size
-    if: signature != 65537
+    if: symbols_size > 0 and signature != 65537
+    doc: 'not sure about the symbols_size > 0 part, but required for a pure asm source, which provided 0 symbols (symbols_size == 0)'
     type: u4
   - id: global_refs
-    if: signature != 65537
+    if: symbols_size > 0 and signature != 65537
+    doc: 'not sure about the symbols_size > 0 part, but required for a pure asm source, which provided 0 symbols (symbols_size == 0)'
     size: global_refs_size
 types:
   symbol_entries:

@@ -376,6 +376,9 @@ def main():
                                 case _:
                                     raise ValueError
                     elif module_stream.c11_line_size:
+
+                        if "GRIDCLIP.OBJ" in mod_info.module_name:
+                            pass
                         import cvdump.kaitai.omf
                         import io
                         bs = io.BytesIO(module_stream.c11_line_info)

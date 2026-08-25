@@ -232,9 +232,12 @@ class ModiStream(KaitaiStruct):
         self._read()
 
     def _read(self):
-        self.signature = self._io.read_u4le()
-        if not  ((self.signature == 65537) or (self.signature == 1) or (self.signature == 2) or (self.signature == 4)) :
-            raise kaitaistruct.ValidationNotAnyOfError(self.signature, self._io, u"/seq/0")
+        if self.symbols_size > 0:
+            pass
+            self.signature = self._io.read_u4le()
+            if not  ((self.signature == 65537) or (self.signature == 1) or (self.signature == 2) or (self.signature == 4)) :
+                raise kaitaistruct.ValidationNotAnyOfError(self.signature, self._io, u"/seq/0")
+
         if self.symbols_size > 0:
             pass
             self._raw_symbols = self._io.read_bytes(self.symbols_size - 4)
@@ -245,11 +248,11 @@ class ModiStream(KaitaiStruct):
         self._raw_c13_line_info = self._io.read_bytes(self.c13_line_size)
         _io__raw_c13_line_info = KaitaiStream(BytesIO(self._raw_c13_line_info))
         self.c13_line_info = c13_line_stream.C13LineStream(_io__raw_c13_line_info)
-        if self.signature != 65537:
+        if  ((self.symbols_size > 0) and (self.signature != 65537)) :
             pass
             self.global_refs_size = self._io.read_u4le()
 
-        if self.signature != 65537:
+        if  ((self.symbols_size > 0) and (self.signature != 65537)) :
             pass
             self.global_refs = self._io.read_bytes(self.global_refs_size)
 
@@ -259,13 +262,16 @@ class ModiStream(KaitaiStruct):
         pass
         if self.symbols_size > 0:
             pass
+
+        if self.symbols_size > 0:
+            pass
             self.symbols._fetch_instances()
 
         self.c13_line_info._fetch_instances()
-        if self.signature != 65537:
+        if  ((self.symbols_size > 0) and (self.signature != 65537)) :
             pass
 
-        if self.signature != 65537:
+        if  ((self.symbols_size > 0) and (self.signature != 65537)) :
             pass
 
 
