@@ -289,7 +289,7 @@ def main():
 
             print()
             print("Module streams")
-            print("stream symbol   c11_line c13_line name")
+            print("   i stream symbol   c11_line c13_line name")
             for modi, mod_info in enumerate(get_dbi().module_info.entries, 1):
                 debug_info_stream = mod_info.debug_info_stream
                 if debug_info_stream == 0xffff:
@@ -300,7 +300,7 @@ def main():
                 else:
                     c11_line_size = mod_info.lines_size
                     c13_line_size = 0
-                print(f"{debug_info_stream:>6} 0x{mod_info.symbols_size:06x} 0x{c11_line_size:06x} 0x{c13_line_size:06x} {mod_info.module_name}")
+                print(f"{modi:4}){debug_info_stream:>6} 0x{mod_info.symbols_size:06x} 0x{c11_line_size:06x} 0x{c13_line_size:06x} {mod_info.module_name}")
             for stream_index in range(len(msf_file.stream_sizes)):
                 print()
                 print(f"Stream {stream_index}:")
