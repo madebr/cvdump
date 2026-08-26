@@ -22,6 +22,32 @@ class PsiGsi(KaitaiStruct):
     def _fetch_instances(self):
         pass
 
+    class LimitedPdbHashRecordArray(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(PsiGsi.LimitedPdbHashRecordArray, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.entries = []
+            i = 0
+            while True:
+                _ = PsiGsi.PdbHashRecord(self._io, self, self._root)
+                self.entries.append(_)
+                if  ((_.offset_symbol_record_stream_plus_one == 0) or (_.offset_symbol_record_stream_plus_one == 4294967295)) :
+                    break
+                i += 1
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.entries)):
+                pass
+                self.entries[i]._fetch_instances()
+
+
+
     class NewHeader(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(PsiGsi.NewHeader, self).__init__(_io)

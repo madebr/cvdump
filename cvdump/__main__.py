@@ -133,7 +133,7 @@ def main():
                     private_gsi = PsiGsi.PdbHashRecordArray(kaitaistruct.KaitaiStream(records_byte_stream))
                 except kaitaistruct.ValidationFailedError:
                     gsi_stream.seek(0)
-                    private_gsi = PsiGsi.PdbHashRecordArray(ks)
+                    private_gsi = PsiGsi.LimitedPdbHashRecordArray(ks)
             return private_gsi
         def get_psi_records() -> PsiGsi.PdbHashRecordArray:
             nonlocal private_psi
@@ -142,14 +142,15 @@ def main():
                 psi_stream_index = dbi.header.public_symbol_stream
                 psi_stream = msf_file.create_stream(psi_stream_index)
                 ks = kaitaistruct.KaitaiStream(psi_stream)
+                psi_header = PsiGsi.PsiStreamHeader(ks)
+                p = psi_stream.tell()
                 try:
-                    psi_header = PsiGsi.PsiStreamHeader(ks)
                     header = PsiGsi.NewHeader(ks)
                     records_byte_stream = io.BytesIO(psi_stream.read(header.hash_records_byte_size))
                     private_psi = PsiGsi.PdbHashRecordArray(kaitaistruct.KaitaiStream(records_byte_stream))
                 except kaitaistruct.ValidationFailedError:
-                    psi_stream.seek(0)
-                    private_psi = PsiGsi.PdbHashRecordArray(ks)
+                    psi_stream.seek(p)
+                    private_psi = PsiGsi.LimitedPdbHashRecordArray(ks)
             return private_psi
         def get_info() -> InfoStream:
             nonlocal private_info

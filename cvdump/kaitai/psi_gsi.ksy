@@ -37,6 +37,12 @@ types:
       - id: entries
         type: pdb_hash_record
         repeat: eos
+  limited_pdb_hash_record_array:
+    seq:
+      - id: entries
+        type: pdb_hash_record
+        repeat: until
+        repeat-until: _.offset_symbol_record_stream_plus_one == 0 or _.offset_symbol_record_stream_plus_one == 0xffffffff
   pdb_hash_record:
     seq:
       - id: offset_symbol_record_stream_plus_one
