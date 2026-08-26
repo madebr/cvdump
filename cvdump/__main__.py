@@ -13,11 +13,11 @@ import zipfile
 from cvdump.dump_tpi import dump_ipi, dump_tpi
 from cvdump.dump_symbol import dump_symbol, MachineConfig
 from cvdump.machine import Machine
-from cvdump.msf import MsfFile, MsfStream
+from cvdump.msf import MsfFile
 from cvdump.kaitai.c13_line_stream import C13LineStream
 from cvdump.kaitai.cv_symbol_stream import CvSymbolStream
 from cvdump.kaitai.dbi_stream import DbiStream
-from cvdump.kaitai.gsi_stream import GsiStream
+from cvdump.kaitai.psi_gsi import PsiGsi
 from cvdump.kaitai.info_stream import InfoStream
 from cvdump.kaitai.modi_stream import ModiStream
 from cvdump.kaitai.names_stream import NamesStream
@@ -62,6 +62,7 @@ def main():
     parser.add_argument("--ls",  dest="list_streams", action="store_true", help="List MSF streams")
     parser.add_argument("--info",  dest="info", action="store_true", help="PDB Information")
     parser.add_argument("-g",  dest="dump_globals", action="store_true", help="Global symbols")
+    parser.add_argument("-p",  dest="dump_publics", action="store_true", help="Public symbols")
     parser.add_argument("-l",  dest="dump_lines", action="store_true", help="Source lines")
     parser.add_argument("--names",  dest="dump_names", action="store_true", help="Dump Names stream")
     parser.add_argument("--modules", "-m", dest="dump_modules", action="store_true", help="Dump modules")
@@ -84,6 +85,7 @@ def main():
         private_tpi = None
         private_symbol_record_stream_symbols = None
         private_gsi = None
+        private_psi = None
         private_info = None
         private_named_stream_map = None
         private_named_stream_map_initialized = False
@@ -118,7 +120,7 @@ def main():
                 dbi = get_dbi()
                 private_symbol_record_stream_symbols = CvSymbolStream(delta_pos=0, _io=kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.symbol_record_stream)))
             return private_symbol_record_stream_symbols
-        def get_gsi_records() -> GsiStream.PdbHashRecordArray:
+        def get_gsi_records() -> PsiGsi.PdbHashRecordArray:
             nonlocal private_gsi
             if not private_gsi:
                 dbi = get_dbi()
@@ -126,13 +128,29 @@ def main():
                 gsi_stream = msf_file.create_stream(gsi_stream_index)
                 ks = kaitaistruct.KaitaiStream(gsi_stream)
                 try:
-                    header = GsiStream.NewHeader(ks)
+                    header = PsiGsi.NewHeader(ks)
                     records_byte_stream = io.BytesIO(gsi_stream.read(header.hash_records_byte_size))
-                    private_gsi = GsiStream.PdbHashRecordArray(kaitaistruct.KaitaiStream(records_byte_stream))
+                    private_gsi = PsiGsi.PdbHashRecordArray(kaitaistruct.KaitaiStream(records_byte_stream))
                 except kaitaistruct.ValidationFailedError:
                     gsi_stream.seek(0)
-                    private_gsi = GsiStream.PdbHashRecordArray(ks)
+                    private_gsi = PsiGsi.PdbHashRecordArray(ks)
             return private_gsi
+        def get_psi_records() -> PsiGsi.PdbHashRecordArray:
+            nonlocal private_psi
+            if not private_psi:
+                dbi = get_dbi()
+                psi_stream_index = dbi.header.public_symbol_stream
+                psi_stream = msf_file.create_stream(psi_stream_index)
+                ks = kaitaistruct.KaitaiStream(psi_stream)
+                try:
+                    psi_header = PsiGsi.PsiStreamHeader(ks)
+                    header = PsiGsi.NewHeader(ks)
+                    records_byte_stream = io.BytesIO(psi_stream.read(header.hash_records_byte_size))
+                    private_psi = PsiGsi.PdbHashRecordArray(kaitaistruct.KaitaiStream(records_byte_stream))
+                except kaitaistruct.ValidationFailedError:
+                    psi_stream.seek(0)
+                    private_psi = PsiGsi.PdbHashRecordArray(ks)
+            return private_psi
         def get_info() -> InfoStream:
             nonlocal private_info
             if not private_info:
@@ -472,6 +490,22 @@ def main():
                 symbol_record_lut[symbol.pos] = symbol
             gsi_records = get_gsi_records()
             for record in gsi_records.entries:
+                if record.offset_symbol_record_stream_plus_one in (0, 0xffffffff):
+                    break
+                symbol = symbol_record_lut[record.offset_symbol_record_stream_plus_one - 1]
+                dump_symbol(symbol, None, None, dump_pos=False)
+
+        if args.dump_publics:
+            print()
+            print("*** PUBLICS")
+            print()
+
+            symbol_records = get_symbol_record_stream_symbols()
+            symbol_record_lut = {}
+            for symbol in symbol_records.entries:
+                symbol_record_lut[symbol.pos] = symbol
+            psi_records = get_psi_records()
+            for record in psi_records.entries:
                 if record.offset_symbol_record_stream_plus_one in (0, 0xffffffff):
                     break
                 symbol = symbol_record_lut[record.offset_symbol_record_stream_plus_one - 1]

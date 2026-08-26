@@ -1,7 +1,25 @@
 meta:
-  id: gsi_stream
+  id: psi_gsi
   endian: le
 types:
+  psi_stream_header:
+    seq:
+      - id: hash_table_information_bytes_size
+        type: u4
+      - id: address_map_byte_size
+        type: u4
+      - id: number_of_thunks
+        type: u4
+      - id: thunk_bytes_size
+        type: u4
+      - id: thunk_table_section_id
+        type: u2
+      - id: padding
+        type: u2
+      - id: thunk_table_offset_in_section
+        type: u4
+      - id: number_of_sections_in_thunk_section_map
+        type: u4
   new_header:
     seq:
       - id: version_signature
