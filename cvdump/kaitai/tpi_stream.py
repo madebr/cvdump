@@ -1743,12 +1743,20 @@ class TpiStream(KaitaiStruct):
             self.field = self._io.read_u4le()
             self.size = numeric.Numeric(self._io)
             self.name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_union, self._io)
+            if self.property & 512 != 0:
+                pass
+                self.unique_name = strz_or_pascal.StrzOrPascal(self._parent.type == TpiStream.Leaf.LeafType.lf_union, self._io)
+
 
 
         def _fetch_instances(self):
             pass
             self.size._fetch_instances()
             self.name._fetch_instances()
+            if self.property & 512 != 0:
+                pass
+                self.unique_name._fetch_instances()
+
 
 
     class LfUnion16t(KaitaiStruct):

@@ -599,9 +599,8 @@ POINTER_TO_MEMBER_TYPE_NAMES = [
 ]
 
 
-supports_query_udt = False
-def show_udt_type_id(name: str) -> int | None:
-    raise NotImplementedError
+def show_udt_type_id(collected_udt: dict[str, int], name: str) -> int | None:
+    return collected_udt.get(name, None)
 
 def get_numeric_string(number: TpiStream.Numeric):
     if number.tag < 0x8000:
@@ -788,8 +787,37 @@ def dump_ipi(tpi: TpiStream, name_offset_to_name: dict[int, str]):
     print()
     dump_cvstream(tpi, name_offset_to_name)
 
-def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
 
+def collect_udt(tpi: TpiStream) -> dict[str, int]:
+    udt: dict[str, int] = {}
+    for tpi_id, record in enumerate(tpi.records, tpi.header.ti_min):
+        match record.leaf.type:
+            case TpiStream.Leaf.LeafType.lf_enum_16t | \
+                 TpiStream.Leaf.LeafType.lf_union_16t | \
+                 TpiStream.Leaf.LeafType.lf_enum | \
+                 TpiStream.Leaf.LeafType.lf_enum_st | \
+                 TpiStream.Leaf.LeafType.lf_union | \
+                 TpiStream.Leaf.LeafType.lf_union_st | \
+                 TpiStream.Leaf.LeafType.lf_structure_16t | \
+                 TpiStream.Leaf.LeafType.lf_class_16t | \
+                 TpiStream.Leaf.LeafType.lf_class_st | \
+                 TpiStream.Leaf.LeafType.lf_structure_st | \
+                 TpiStream.Leaf.LeafType.lf_class | \
+                 TpiStream.Leaf.LeafType.lf_structure | \
+                 TpiStream.Leaf.LeafType.lf_interface:
+                if not (record.leaf.body.property & ClassProperties.FWDREF or record.leaf.body.property & ClassProperties.SCOPED):
+                    name = record.leaf.body.name.text
+                    if "<unnamed-tag>" in name or "<lambda_" in name:
+                        # FIXME: is there a better way to filter these out?
+                        pass
+                    else:
+                        udt[name] = tpi_id
+    return udt
+
+
+def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
+    supports_query_udt = True
+    collected_udt = collect_udt(tpi)
     for tpi_id, record in enumerate(tpi.records, tpi.header.ti_min):
         print(f"0x{tpi_id:04x} : Length = {record.record_size}, Leaf = 0x{record.leaf.type:04x} {record.leaf.type.name.upper()}", end="")
         if record.record_size < 2:
@@ -828,7 +856,7 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                             print_class_field_attributes(item.element.attr, True)
                             print(f"index = {get_c7_type_name(item.element.index)}, ", end="")
                             if hasattr(item.element, "vfptr_offset"):
-                                print(f"vfptr offest = {item.element.vfptr_offset}, ", end="")
+                                print(f"vfptr offset = {item.element.vfptr_offset}, ", end="")
                             print(f"name = '{item.element.name.text}'")
                         case TpiStream.Leaf.LeafType.lf_member_16t:
                             print("LF_MEMBER_16t, ", end="")
@@ -905,7 +933,7 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                             print(f"index = {get_c7_type_name(item.element.index)}, ", end="")
                             if hasattr(item.element, "vfptr_offset"):
                                 print()
-                                print(f"\t\tvfptr offest = {item.element.vfptr_offset}, ", end="")
+                                print(f"\t\tvfptr offset = {item.element.vfptr_offset}, ", end="")
                             print(f"name = '{item.element.name.text}'")
                         case TpiStream.Leaf.LeafType.lf_member | TpiStream.Leaf.LeafType.lf_member_st:
                             print("LF_MEMBER, ", end="")
@@ -925,8 +953,9 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                             print()
                         case TpiStream.Leaf.LeafType.lf_index:
                             print("LF_INDEX, ", end="")
-                            print(f"Type Index = {get_c7_type_name(item.element.index)}")
+                            print(f"Type Index = {get_c7_type_name(item.element.index)}", end="")
                             if item.element.padding != 0:
+                                print()
                                 print("***Warning, pad bytes are non-zero!")
                             print()
                         # case TpiStream.Leaf.LeafType.lf_vbclass:
@@ -957,9 +986,9 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                 print_class_properties(record.leaf.body.property)
                 print(f"\tenum name = {record.leaf.body.name.text}", end="")
                 if supports_query_udt:
-                    udt = show_udt_type_id(record.leaf.body.name.text)
+                    udt = show_udt_type_id(collected_udt, record.leaf.body.name.text)
                     if udt is not None:
-                        print(f", UDT(0x{udt:08x}", end="")
+                        print(f", UDT(0x{udt:08x})", end="")
                 print()
             case TpiStream.Leaf.LeafType.lf_enum | TpiStream.Leaf.LeafType.lf_enum_st:
                 print()
@@ -969,9 +998,9 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                 print_class_properties(record.leaf.body.property)
                 print(f"\tenum name = {record.leaf.body.name.text}", end="")
                 if supports_query_udt:
-                    udt = show_udt_type_id(record.leaf.body.name.text)
+                    udt = show_udt_type_id(collected_udt, record.leaf.body.name.text)
                     if udt is not None:
-                        print(f", UDT(0x{udt:08x}", end="")
+                        print(f", UDT(0x{udt:08x})", end="")
                 print()
             case TpiStream.Leaf.LeafType.lf_structure_16t | TpiStream.Leaf.LeafType.lf_class_16t:
                 print()
@@ -991,9 +1020,9 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                 # if record.leaf.body.property & 0x20: # hasuniquename
                 #     print(f", unique name = {record.leaf.body.unique_name.text}", end="")
                 if supports_query_udt:
-                    udt = show_udt_type_id(record.leaf.body.name.text)
+                    udt = show_udt_type_id(collected_udt, record.leaf.body.name.text)
                     if udt is not None:
-                        print(f", UDT(0x{udt:08x}", end="")
+                        print(f", UDT(0x{udt:08x})", end="")
                 print()
             case TpiStream.Leaf.LeafType.lf_class_st | TpiStream.Leaf.LeafType.lf_structure_st | TpiStream.Leaf.LeafType.lf_class | TpiStream.Leaf.LeafType.lf_structure | TpiStream.Leaf.LeafType.lf_interface:
                 # match record.leaf.type:
@@ -1012,12 +1041,12 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                 print(f"VT shape type 0x{record.leaf.body.vshape:04x}")
                 print(f"\tSize = {get_numeric_string(record.leaf.body.size)},", end="")
                 print(f" class name = {record.leaf.body.name.text}", end="")
-                if record.leaf.body.property & 0x20: # hasuniquename
+                if record.leaf.body.property & 0x200: # hasuniquename
                     print(f", unique name = {record.leaf.body.unique_name.text}", end="")
                 if supports_query_udt:
-                    udt = show_udt_type_id(record.leaf.body.name.text)
+                    udt = show_udt_type_id(collected_udt, record.leaf.body.name.text)
                     if udt is not None:
-                        print(f", UDT(0x{udt:08x}", end="")
+                        print(f", UDT(0x{udt:08x})", end="")
                 print()
             case TpiStream.Leaf.LeafType.lf_array_16t:
                 print()
@@ -1041,14 +1070,14 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                     print(f"\tlist[{arg_i}] = {get_c7_type_name(arg)}")
             case TpiStream.Leaf.LeafType.lf_procedure_16t:
                 print()
-                print(f"\tReturn type = {get_c7_type_name(record.leaf.body.rvtype)}. ", end="")
+                print(f"\tReturn type = {get_c7_type_name(record.leaf.body.rvtype)}, ", end="")
                 print(f"Call type = {get_call_convention_name(record.leaf.body.calltype)}")
                 print(f"\tFunc attr = {get_function_attribute_name(record.leaf.body.funcattr)}")
                 print(f"\t# Parms = {record.leaf.body.parmcount}, ", end="")
                 print(f"Arg list type = 0x{record.leaf.body.arglist:x}")
             case TpiStream.Leaf.LeafType.lf_procedure:
                 print()
-                print(f"\tReturn type = {get_c7_type_name(record.leaf.body.rvtype)}. ", end="")
+                print(f"\tReturn type = {get_c7_type_name(record.leaf.body.rvtype)}, ", end="")
                 print(f"Call type = {get_call_convention_name(record.leaf.body.calltype)}")
                 print(f"\tFunc attr = {get_function_attribute_name(record.leaf.body.funcattr)}")
                 print(f"\t# Parms = {record.leaf.body.parmcount}, ", end="")
@@ -1184,7 +1213,7 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                     print()
             case TpiStream.Leaf.LeafType.lf_vtshape:
                 print()
-                print(f"\tNumber of entries: {record.leaf.body.count}")
+                print(f"\tNumber of entries : {record.leaf.body.count}")
                 for i in range(record.leaf.body.count):
                     idx = i // 2
                     t = record.leaf.body.desc[idx >> (4 * (i % 2))] % 16
@@ -1198,9 +1227,9 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                 # FIXME: missing newline + ugly whitespace around comma
                 print(f"\t,class name = {record.leaf.body.name.text}", end="")
                 if supports_query_udt:
-                    udt = show_udt_type_id(record.leaf.body.name.text)
+                    udt = show_udt_type_id(collected_udt, record.leaf.body.name.text)
                     if udt is not None:
-                        print(f", UDT(0x{udt:08x}", end="")
+                        print(f", UDT(0x{udt:08x})", end="")
                 print()
             case TpiStream.Leaf.LeafType.lf_union | TpiStream.Leaf.LeafType.lf_union_st:
                 print()
@@ -1210,10 +1239,12 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                 print(f"Size = {get_numeric_string(record.leaf.body.size)}", end="")
                 # FIXME: missing newline + ugly whitespace around comma
                 print(f"\t,class name = {record.leaf.body.name.text}", end="")
+                if record.leaf.body.property & 0x200:  # hasuniquename
+                    print(f", unique name = {record.leaf.body.unique_name.text}", end="")
                 if supports_query_udt:
-                    udt = show_udt_type_id(record.leaf.body.name.text)
+                    udt = show_udt_type_id(collected_udt, record.leaf.body.name.text)
                     if udt is not None:
-                        print(f", UDT(0x{udt:08x}", end="")
+                        print(f", UDT(0x{udt:08x})", end="")
                 print()
             case TpiStream.Leaf.LeafType.lf_bitfield_16t:
                 print()

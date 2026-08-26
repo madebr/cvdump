@@ -951,6 +951,9 @@ types:
         type: numeric
       - id: name
         type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_union)
+      - id: unique_name
+        type: strz_or_pascal(_parent.type == leaf::leaf_type::lf_union)
+        if: (property & 0x200) != 0
 
   lf_bitfield_16t:
     doc: lfBitfield_16t (cvinfo.h)
