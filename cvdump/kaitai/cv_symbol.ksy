@@ -108,6 +108,8 @@ types:
             'symbol_type::s_pub32_16t': datasym32_16t
             'symbol_type::s_constant_16t': constsym_16t
             'symbol_type::s_gdata32_16t': datasym32_16t
+            'symbol_type::s_armswitchtable': armswitchtable
+            'symbol_type::s_unk1166': unk1166
   udtsym_16t:
     doc: 'UDTSYM_16t'
     seq:
@@ -311,6 +313,10 @@ types:
         type: u4
         repeat: expr
         repeat-expr: count
+  unk1166:
+    seq:
+      - id: field_0x0
+        type: u4
   inline_site_end_sym:
     seq: []
   inline_site_sym:
@@ -716,6 +722,25 @@ types:
         type: numeric
       - id: name
         type: pascal_string
+  armswitchtable:
+    doc: ARMSWITCHTABLE (cvinfo.h)
+    seq:
+      - id: offset_base
+        type: u4
+      - id: sect_base
+        type: u2
+      - id: switch_type
+        type: u2
+      - id: offset_branch
+        type: u4
+      - id: offset_table
+        type: u4
+      - id: sect_branch
+        type: u2
+      - id: sect_table
+        type: u2
+      - id: count_entries
+        type: u4
 enums:
   symbol_type:
       0x0001: s_compile  # Compile flags symbol
@@ -924,6 +949,7 @@ enums:
       0x1163: s_ldata_hlsl32
       0x1164: s_gdata_hlsl32_ex
       0x1165: s_ldata_hlsl32_ex
+      0x1166: s_unk1166 # undocumented, seen in arm64
       0x1168: s_inlinees # undocumented (see llvm)
       0x1170: s_bprel32_indir #(llvm)
       0x1171: s_regrel32_indir #(llvm)

@@ -42,71 +42,74 @@ class LanguageId(enum.IntEnum):
 
 
 class CpuType(enum.IntEnum):
-    CV_CFL_8080         = 0x00
-    CV_CFL_8086         = 0x01
-    CV_CFL_80286        = 0x02
-    CV_CFL_80386        = 0x03
-    CV_CFL_80486        = 0x04
-    CV_CFL_PENTIUM      = 0x05
-    CV_CFL_PENTIUMII    = 0x06
-    CV_CFL_PENTIUMPRO   = CV_CFL_PENTIUMII
-    CV_CFL_PENTIUMIII   = 0x07
-    CV_CFL_MIPS         = 0x10
-    CV_CFL_MIPSR4000    = CV_CFL_MIPS  # don't break current cod
-    CV_CFL_MIPS16       = 0x11
-    CV_CFL_MIPS32       = 0x12
-    CV_CFL_MIPS64       = 0x13
-    CV_CFL_MIPSI        = 0x14
-    CV_CFL_MIPSII       = 0x15
-    CV_CFL_MIPSIII      = 0x16
-    CV_CFL_MIPSIV       = 0x17
-    CV_CFL_MIPSV        = 0x18
-    CV_CFL_M68000       = 0x20
-    CV_CFL_M68010       = 0x21
-    CV_CFL_M68020       = 0x22
-    CV_CFL_M68030       = 0x23
-    CV_CFL_M68040       = 0x24
-    CV_CFL_ALPHA        = 0x30
-    CV_CFL_ALPHA_21064  = 0x30
-    CV_CFL_ALPHA_21164  = 0x31
-    CV_CFL_ALPHA_21164A = 0x32
-    CV_CFL_ALPHA_21264  = 0x33
-    CV_CFL_ALPHA_21364  = 0x34
-    CV_CFL_PPC601       = 0x40
-    CV_CFL_PPC603       = 0x41
-    CV_CFL_PPC604       = 0x42
-    CV_CFL_PPC620       = 0x43
-    CV_CFL_PPCFP        = 0x44
-    CV_CFL_PPCBE        = 0x45
-    CV_CFL_SH3          = 0x50
-    CV_CFL_SH3E         = 0x51
-    CV_CFL_SH3DSP       = 0x52
-    CV_CFL_SH4          = 0x53
-    CV_CFL_SHMEDIA      = 0x54
-    CV_CFL_ARM3         = 0x60
-    CV_CFL_ARM4         = 0x61
-    CV_CFL_ARM4T        = 0x62
-    CV_CFL_ARM5         = 0x63
-    CV_CFL_ARM5T        = 0x64
-    CV_CFL_ARM6         = 0x65
-    CV_CFL_ARM_XMAC     = 0x66
-    CV_CFL_ARM_WMMX     = 0x67
-    CV_CFL_ARM7         = 0x68
-    CV_CFL_OMNI         = 0x70
-    CV_CFL_IA64         = 0x80
-    CV_CFL_IA64_1       = 0x80
-    CV_CFL_IA64_2       = 0x81
-    CV_CFL_CEE          = 0x90
-    CV_CFL_AM33         = 0xA0
-    CV_CFL_M32R         = 0xB0
-    CV_CFL_TRICORE      = 0xC0
-    CV_CFL_X64          = 0xD0
-    CV_CFL_AMD64        = CV_CFL_X64
-    CV_CFL_EBC          = 0xE0
-    CV_CFL_THUMB        = 0xF0
-    CV_CFL_ARMNT        = 0xF4
-    CV_CFL_ARM64        = 0xF6
-    CV_CFL_D3D11_SHADER = 0x100
+    CV_CFL_8080             = 0x00
+    CV_CFL_8086             = 0x01
+    CV_CFL_80286            = 0x02
+    CV_CFL_80386            = 0x03
+    CV_CFL_80486            = 0x04
+    CV_CFL_PENTIUM          = 0x05
+    CV_CFL_PENTIUMII        = 0x06
+    CV_CFL_PENTIUMPRO       = CV_CFL_PENTIUMII
+    CV_CFL_PENTIUMIII       = 0x07
+    CV_CFL_MIPS             = 0x10
+    CV_CFL_MIPSR4000        = CV_CFL_MIPS  # don't break current cod
+    CV_CFL_MIPS16           = 0x11
+    CV_CFL_MIPS32           = 0x12
+    CV_CFL_MIPS64           = 0x13
+    CV_CFL_MIPSI            = 0x14
+    CV_CFL_MIPSII           = 0x15
+    CV_CFL_MIPSIII          = 0x16
+    CV_CFL_MIPSIV           = 0x17
+    CV_CFL_MIPSV            = 0x18
+    CV_CFL_M68000           = 0x20
+    CV_CFL_M68010           = 0x21
+    CV_CFL_M68020           = 0x22
+    CV_CFL_M68030           = 0x23
+    CV_CFL_M68040           = 0x24
+    CV_CFL_ALPHA            = 0x30
+    CV_CFL_ALPHA_21064      = 0x30
+    CV_CFL_ALPHA_21164      = 0x31
+    CV_CFL_ALPHA_21164A     = 0x32
+    CV_CFL_ALPHA_21264      = 0x33
+    CV_CFL_ALPHA_21364      = 0x34
+    CV_CFL_PPC601           = 0x40
+    CV_CFL_PPC603           = 0x41
+    CV_CFL_PPC604           = 0x42
+    CV_CFL_PPC620           = 0x43
+    CV_CFL_PPCFP            = 0x44
+    CV_CFL_PPCBE            = 0x45
+    CV_CFL_SH3              = 0x50
+    CV_CFL_SH3E             = 0x51
+    CV_CFL_SH3DSP           = 0x52
+    CV_CFL_SH4              = 0x53
+    CV_CFL_SHMEDIA          = 0x54
+    CV_CFL_ARM3             = 0x60
+    CV_CFL_ARM4             = 0x61
+    CV_CFL_ARM4T            = 0x62
+    CV_CFL_ARM5             = 0x63
+    CV_CFL_ARM5T            = 0x64
+    CV_CFL_ARM6             = 0x65
+    CV_CFL_ARM_XMAC         = 0x66
+    CV_CFL_ARM_WMMX         = 0x67
+    CV_CFL_ARM7             = 0x68
+    CV_CFL_OMNI             = 0x70
+    CV_CFL_IA64             = 0x80
+    CV_CFL_IA64_1           = 0x80
+    CV_CFL_IA64_2           = 0x81
+    CV_CFL_CEE              = 0x90
+    CV_CFL_AM33             = 0xA0
+    CV_CFL_M32R             = 0xB0
+    CV_CFL_TRICORE          = 0xC0
+    CV_CFL_X64              = 0xD0
+    CV_CFL_AMD64            = CV_CFL_X64
+    CV_CFL_EBC              = 0xE0
+    CV_CFL_THUMB            = 0xF0
+    CV_CFL_ARMNT            = 0xF4
+    CV_CFL_ARM64            = 0xF6
+    CV_CFL_HYBRID_X86_ARM64 = 0xF7
+    CV_CFL_ARM64EC          = 0xF8
+    CV_CFL_ARM64X           = 0xF9
+    CV_CFL_D3D11_SHADER     = 0x100
 
 
 LANGUAGE_TO_STRING: dict[LanguageId, str] = {
@@ -225,6 +228,8 @@ def ProcessorToMachine(processor_id: int) -> Machine:
             return Machine.IMAGE_FILE_MACHINE_I386
         case CpuType.CV_CFL_X64:
             return Machine.IMAGE_FILE_MACHINE_AMD64
+        case CpuType.CV_CFL_ARM64 | CpuType.CV_CFL_ARM64X | CpuType.CV_CFL_ARM64EC:
+            return Machine.IMAGE_FILE_MACHINE_ARM64
         case _:
             raise ValueError
 
@@ -653,6 +658,7 @@ class RegisterX86(enum.Enum):
     CV_REG_BND1 = 397
     CV_REG_BND2 = 398
     CV_REG_BND3 = 399
+
 
 class RegisterAMD64(enum.Enum):
     CV_REG_NONE       =   0
@@ -1269,6 +1275,172 @@ class RegisterAMD64(enum.Enum):
     CV_AMD64_YMM15D2    =  686
     CV_AMD64_YMM15D3    =  687
 
+class RegisterARM64(enum.Enum):
+    CV_ARM64_NOREG  =  0
+    CV_ARM64_W0     =  10
+    CV_ARM64_W1     =  11
+    CV_ARM64_W2     =  12
+    CV_ARM64_W3     =  13
+    CV_ARM64_W4     =  14
+    CV_ARM64_W5     =  15
+    CV_ARM64_W6     =  16
+    CV_ARM64_W7     =  17
+    CV_ARM64_W8     =  18
+    CV_ARM64_W9     =  19
+    CV_ARM64_W10    =  20
+    CV_ARM64_W11    =  21
+    CV_ARM64_W12    =  22
+    CV_ARM64_W13    =  23
+    CV_ARM64_W14    =  24
+    CV_ARM64_W15    =  25
+    CV_ARM64_W16    =  26
+    CV_ARM64_W17    =  27
+    CV_ARM64_W18    =  28
+    CV_ARM64_W19    =  29
+    CV_ARM64_W20    =  30
+    CV_ARM64_W21    =  31
+    CV_ARM64_W22    =  32
+    CV_ARM64_W23    =  33
+    CV_ARM64_W24    =  34
+    CV_ARM64_W25    =  35
+    CV_ARM64_W26    =  36
+    CV_ARM64_W27    =  37
+    CV_ARM64_W28    =  38
+    CV_ARM64_W29    =  39
+    CV_ARM64_W30    =  40
+    CV_ARM64_WZR    =  41
+    CV_ARM64_X0     =  50
+    CV_ARM64_X1     =  51
+    CV_ARM64_X2     =  52
+    CV_ARM64_X3     =  53
+    CV_ARM64_X4     =  54
+    CV_ARM64_X5     =  55
+    CV_ARM64_X6     =  56
+    CV_ARM64_X7     =  57
+    CV_ARM64_X8     =  58
+    CV_ARM64_X9     =  59
+    CV_ARM64_X10    =  60
+    CV_ARM64_X11    =  61
+    CV_ARM64_X12    =  62
+    CV_ARM64_X13    =  63
+    CV_ARM64_X14    =  64
+    CV_ARM64_X15    =  65
+    CV_ARM64_IP0    =  66
+    CV_ARM64_IP1    =  67
+    CV_ARM64_X18    =  68
+    CV_ARM64_X19    =  69
+    CV_ARM64_X20    =  70
+    CV_ARM64_X21    =  71
+    CV_ARM64_X22    =  72
+    CV_ARM64_X23    =  73
+    CV_ARM64_X24    =  74
+    CV_ARM64_X25    =  75
+    CV_ARM64_X26    =  76
+    CV_ARM64_X27    =  77
+    CV_ARM64_X28    =  78
+    CV_ARM64_FP     =  79
+    CV_ARM64_LR     =  80
+    CV_ARM64_SP     =  81
+    CV_ARM64_ZR     =  82
+    CV_ARM64_NZCV   =  90
+    CV_ARM64_S0     =  100
+    CV_ARM64_S1     =  101
+    CV_ARM64_S2     =  102
+    CV_ARM64_S3     =  103
+    CV_ARM64_S4     =  104
+    CV_ARM64_S5     =  105
+    CV_ARM64_S6     =  106
+    CV_ARM64_S7     =  107
+    CV_ARM64_S8     =  108
+    CV_ARM64_S9     =  109
+    CV_ARM64_S10    =  110
+    CV_ARM64_S11    =  111
+    CV_ARM64_S12    =  112
+    CV_ARM64_S13    =  113
+    CV_ARM64_S14    =  114
+    CV_ARM64_S15    =  115
+    CV_ARM64_S16    =  116
+    CV_ARM64_S17    =  117
+    CV_ARM64_S18    =  118
+    CV_ARM64_S19    =  119
+    CV_ARM64_S20    =  120
+    CV_ARM64_S21    =  121
+    CV_ARM64_S22    =  122
+    CV_ARM64_S23    =  123
+    CV_ARM64_S24    =  124
+    CV_ARM64_S25    =  125
+    CV_ARM64_S26    =  126
+    CV_ARM64_S27    =  127
+    CV_ARM64_S28    =  128
+    CV_ARM64_S29    =  129
+    CV_ARM64_S30    =  130
+    CV_ARM64_S31    =  131
+    CV_ARM64_D0     =  140
+    CV_ARM64_D1     =  141
+    CV_ARM64_D2     =  142
+    CV_ARM64_D3     =  143
+    CV_ARM64_D4     =  144
+    CV_ARM64_D5     =  145
+    CV_ARM64_D6     =  146
+    CV_ARM64_D7     =  147
+    CV_ARM64_D8     =  148
+    CV_ARM64_D9     =  149
+    CV_ARM64_D10    =  150
+    CV_ARM64_D11    =  151
+    CV_ARM64_D12    =  152
+    CV_ARM64_D13    =  153
+    CV_ARM64_D14    =  154
+    CV_ARM64_D15    =  155
+    CV_ARM64_D16    =  156
+    CV_ARM64_D17    =  157
+    CV_ARM64_D18    =  158
+    CV_ARM64_D19    =  159
+    CV_ARM64_D20    =  160
+    CV_ARM64_D21    =  161
+    CV_ARM64_D22    =  162
+    CV_ARM64_D23    =  163
+    CV_ARM64_D24    =  164
+    CV_ARM64_D25    =  165
+    CV_ARM64_D26    =  166
+    CV_ARM64_D27    =  167
+    CV_ARM64_D28    =  168
+    CV_ARM64_D29    =  169
+    CV_ARM64_D30    =  170
+    CV_ARM64_D31    =  171
+    CV_ARM64_Q0     =  180
+    CV_ARM64_Q1     =  181
+    CV_ARM64_Q2     =  182
+    CV_ARM64_Q3     =  183
+    CV_ARM64_Q4     =  184
+    CV_ARM64_Q5     =  185
+    CV_ARM64_Q6     =  186
+    CV_ARM64_Q7     =  187
+    CV_ARM64_Q8     =  188
+    CV_ARM64_Q9     =  189
+    CV_ARM64_Q10    =  190
+    CV_ARM64_Q11    =  191
+    CV_ARM64_Q12    =  192
+    CV_ARM64_Q13    =  193
+    CV_ARM64_Q14    =  194
+    CV_ARM64_Q15    =  195
+    CV_ARM64_Q16    =  196
+    CV_ARM64_Q17    =  197
+    CV_ARM64_Q18    =  198
+    CV_ARM64_Q19    =  199
+    CV_ARM64_Q20    =  200
+    CV_ARM64_Q21    =  201
+    CV_ARM64_Q22    =  202
+    CV_ARM64_Q23    =  203
+    CV_ARM64_Q24    =  204
+    CV_ARM64_Q25    =  205
+    CV_ARM64_Q26    =  206
+    CV_ARM64_Q27    =  207
+    CV_ARM64_Q28    =  208
+    CV_ARM64_Q29    =  209
+    CV_ARM64_Q30    =  210
+    CV_ARM64_Q31    =  211
+    CV_ARM64_FPSR   =  220
+
 class RegisterCommon(enum.Enum):
     CV_ALLREG_ERR   =   30000
     CV_ALLREG_TEB   =   30001
@@ -1284,6 +1456,174 @@ class RegisterCommon(enum.Enum):
     CV_ALLREG_ENV   =   30011
     CV_ALLREG_CMDLN =   30012
 
+
+
+ARM64_REG_TO_NAME: dict[RegisterARM64, str] = {
+    RegisterARM64.CV_ARM64_NOREG: "None",
+    RegisterARM64.CV_ARM64_W0: "w0",
+    RegisterARM64.CV_ARM64_W1: "w1",
+    RegisterARM64.CV_ARM64_W2: "w2",
+    RegisterARM64.CV_ARM64_W3: "w3",
+    RegisterARM64.CV_ARM64_W4: "w4",
+    RegisterARM64.CV_ARM64_W5: "w5",
+    RegisterARM64.CV_ARM64_W6: "w6",
+    RegisterARM64.CV_ARM64_W7: "w7",
+    RegisterARM64.CV_ARM64_W8: "w8",
+    RegisterARM64.CV_ARM64_W9: "w9",
+    RegisterARM64.CV_ARM64_W10: "w10",
+    RegisterARM64.CV_ARM64_W11: "w11",
+    RegisterARM64.CV_ARM64_W12: "w12",
+    RegisterARM64.CV_ARM64_W13: "w13",
+    RegisterARM64.CV_ARM64_W14: "w14",
+    RegisterARM64.CV_ARM64_W15: "w15",
+    RegisterARM64.CV_ARM64_W16: "w16",
+    RegisterARM64.CV_ARM64_W17: "w17",
+    RegisterARM64.CV_ARM64_W18: "w18",
+    RegisterARM64.CV_ARM64_W19: "w19",
+    RegisterARM64.CV_ARM64_W20: "w20",
+    RegisterARM64.CV_ARM64_W21: "w21",
+    RegisterARM64.CV_ARM64_W22: "w22",
+    RegisterARM64.CV_ARM64_W23: "w23",
+    RegisterARM64.CV_ARM64_W24: "w24",
+    RegisterARM64.CV_ARM64_W25: "w25",
+    RegisterARM64.CV_ARM64_W26: "w26",
+    RegisterARM64.CV_ARM64_W27: "w27",
+    RegisterARM64.CV_ARM64_W28: "w28",
+    RegisterARM64.CV_ARM64_W29: "w29",
+    RegisterARM64.CV_ARM64_W30: "w30",
+    RegisterARM64.CV_ARM64_WZR: "wzr",
+    RegisterARM64.CV_ARM64_X0:  "x0",
+    RegisterARM64.CV_ARM64_X1:  "x1",
+    RegisterARM64.CV_ARM64_X2:  "x2",
+    RegisterARM64.CV_ARM64_X3:  "x3",
+    RegisterARM64.CV_ARM64_X4:  "x4",
+    RegisterARM64.CV_ARM64_X5:  "x5",
+    RegisterARM64.CV_ARM64_X6:  "x6",
+    RegisterARM64.CV_ARM64_X7:  "x7",
+    RegisterARM64.CV_ARM64_X8:  "x8",
+    RegisterARM64.CV_ARM64_X9:  "x9",
+    RegisterARM64.CV_ARM64_X10:  "x10",
+    RegisterARM64.CV_ARM64_X11:  "x11",
+    RegisterARM64.CV_ARM64_X12:  "x12",
+    RegisterARM64.CV_ARM64_X13:  "x13",
+    RegisterARM64.CV_ARM64_X14:  "x14",
+    RegisterARM64.CV_ARM64_X15:  "x15",
+    RegisterARM64.CV_ARM64_IP0:  "ip0",
+    RegisterARM64.CV_ARM64_IP1:  "ip1",
+    RegisterARM64.CV_ARM64_X18:  "x18",
+    RegisterARM64.CV_ARM64_X19:  "x19",
+    RegisterARM64.CV_ARM64_X20:  "x20",
+    RegisterARM64.CV_ARM64_X21:  "x21",
+    RegisterARM64.CV_ARM64_X22:  "x22",
+    RegisterARM64.CV_ARM64_X23:  "x23",
+    RegisterARM64.CV_ARM64_X24:  "x24",
+    RegisterARM64.CV_ARM64_X25:  "x25",
+    RegisterARM64.CV_ARM64_X26:  "x26",
+    RegisterARM64.CV_ARM64_X27:  "x27",
+    RegisterARM64.CV_ARM64_X28:  "x28",
+    RegisterARM64.CV_ARM64_FP: "fp",
+    RegisterARM64.CV_ARM64_LR: "lr",
+    RegisterARM64.CV_ARM64_SP: "sp",
+    RegisterARM64.CV_ARM64_ZR: "zr",
+    RegisterARM64.CV_ARM64_NZCV: "nzcv",
+    RegisterARM64.CV_ARM64_S0: "s0",
+    RegisterARM64.CV_ARM64_S1: "s1",
+    RegisterARM64.CV_ARM64_S2: "s2",
+    RegisterARM64.CV_ARM64_S3: "s3",
+    RegisterARM64.CV_ARM64_S4: "s4",
+    RegisterARM64.CV_ARM64_S5: "s5",
+    RegisterARM64.CV_ARM64_S6: "s6",
+    RegisterARM64.CV_ARM64_S7: "s7",
+    RegisterARM64.CV_ARM64_S8: "s8",
+    RegisterARM64.CV_ARM64_S9: "s9",
+    RegisterARM64.CV_ARM64_S10: "s10",
+    RegisterARM64.CV_ARM64_S11: "s11",
+    RegisterARM64.CV_ARM64_S12: "s12",
+    RegisterARM64.CV_ARM64_S13: "s13",
+    RegisterARM64.CV_ARM64_S14: "s14",
+    RegisterARM64.CV_ARM64_S15: "s15",
+    RegisterARM64.CV_ARM64_S16: "s16",
+    RegisterARM64.CV_ARM64_S17: "s17",
+    RegisterARM64.CV_ARM64_S18: "s18",
+    RegisterARM64.CV_ARM64_S19: "s19",
+    RegisterARM64.CV_ARM64_S20: "s20",
+    RegisterARM64.CV_ARM64_S21: "s21",
+    RegisterARM64.CV_ARM64_S22: "s22",
+    RegisterARM64.CV_ARM64_S23: "s23",
+    RegisterARM64.CV_ARM64_S24: "s24",
+    RegisterARM64.CV_ARM64_S25: "s25",
+    RegisterARM64.CV_ARM64_S26: "s26",
+    RegisterARM64.CV_ARM64_S27: "s27",
+    RegisterARM64.CV_ARM64_S28: "s28",
+    RegisterARM64.CV_ARM64_S29: "s29",
+    RegisterARM64.CV_ARM64_S30: "s30",
+    RegisterARM64.CV_ARM64_S31: "s31",
+    RegisterARM64.CV_ARM64_D0: "d0",
+    RegisterARM64.CV_ARM64_D1: "d1",
+    RegisterARM64.CV_ARM64_D2: "d2",
+    RegisterARM64.CV_ARM64_D3: "d3",
+    RegisterARM64.CV_ARM64_D4: "d4",
+    RegisterARM64.CV_ARM64_D5: "d5",
+    RegisterARM64.CV_ARM64_D6: "d6",
+    RegisterARM64.CV_ARM64_D7: "d7",
+    RegisterARM64.CV_ARM64_D8: "d8",
+    RegisterARM64.CV_ARM64_D9: "d9",
+    RegisterARM64.CV_ARM64_D10: "d10",
+    RegisterARM64.CV_ARM64_D11: "d11",
+    RegisterARM64.CV_ARM64_D12: "d12",
+    RegisterARM64.CV_ARM64_D13: "d13",
+    RegisterARM64.CV_ARM64_D14: "d14",
+    RegisterARM64.CV_ARM64_D15: "d15",
+    RegisterARM64.CV_ARM64_D16: "d16",
+    RegisterARM64.CV_ARM64_D17: "d17",
+    RegisterARM64.CV_ARM64_D18: "d18",
+    RegisterARM64.CV_ARM64_D19: "d19",
+    RegisterARM64.CV_ARM64_D20: "d20",
+    RegisterARM64.CV_ARM64_D21: "d21",
+    RegisterARM64.CV_ARM64_D22: "d22",
+    RegisterARM64.CV_ARM64_D23: "d23",
+    RegisterARM64.CV_ARM64_D24: "d24",
+    RegisterARM64.CV_ARM64_D25: "d25",
+    RegisterARM64.CV_ARM64_D26: "d26",
+    RegisterARM64.CV_ARM64_D27: "d27",
+    RegisterARM64.CV_ARM64_D28: "d28",
+    RegisterARM64.CV_ARM64_D29: "d29",
+    RegisterARM64.CV_ARM64_D30: "d30",
+    RegisterARM64.CV_ARM64_D31: "d31",
+    RegisterARM64.CV_ARM64_Q0: "q0",
+    RegisterARM64.CV_ARM64_Q1: "q1",
+    RegisterARM64.CV_ARM64_Q2: "q2",
+    RegisterARM64.CV_ARM64_Q3: "q3",
+    RegisterARM64.CV_ARM64_Q4: "q4",
+    RegisterARM64.CV_ARM64_Q5: "q5",
+    RegisterARM64.CV_ARM64_Q6: "q6",
+    RegisterARM64.CV_ARM64_Q7: "q7",
+    RegisterARM64.CV_ARM64_Q8: "q8",
+    RegisterARM64.CV_ARM64_Q9: "q9",
+    RegisterARM64.CV_ARM64_Q10: "q10",
+    RegisterARM64.CV_ARM64_Q11: "q11",
+    RegisterARM64.CV_ARM64_Q12: "q12",
+    RegisterARM64.CV_ARM64_Q13: "q13",
+    RegisterARM64.CV_ARM64_Q14: "q14",
+    RegisterARM64.CV_ARM64_Q15: "q15",
+    RegisterARM64.CV_ARM64_Q16: "q16",
+    RegisterARM64.CV_ARM64_Q17: "q17",
+    RegisterARM64.CV_ARM64_Q18: "q18",
+    RegisterARM64.CV_ARM64_Q19: "q19",
+    RegisterARM64.CV_ARM64_Q20: "q20",
+    RegisterARM64.CV_ARM64_Q21: "q21",
+    RegisterARM64.CV_ARM64_Q22: "q22",
+    RegisterARM64.CV_ARM64_Q23: "q23",
+    RegisterARM64.CV_ARM64_Q24: "q24",
+    RegisterARM64.CV_ARM64_Q25: "q25",
+    RegisterARM64.CV_ARM64_Q26: "q26",
+    RegisterARM64.CV_ARM64_Q27: "q27",
+    RegisterARM64.CV_ARM64_Q28: "q28",
+    RegisterARM64.CV_ARM64_Q29: "q29",
+    RegisterARM64.CV_ARM64_Q30: "q30",
+    RegisterARM64.CV_ARM64_Q31: "q31",
+    RegisterARM64.CV_ARM64_FPSR: "fpsr",
+}
 
 
 X86_REG_TO_NAME: dict[RegisterX86, str] = {
@@ -1685,7 +2025,8 @@ def get_c7_register_name(register: int, machine: Machine):
             case CpuType.CV_CFL_ARM3 | CpuType.CV_CFL_ARM4 | CpuType.CV_CFL_ARM4T | CpuType.CV_CFL_ARM5 | CpuType.CV_CFL_ARM5T | CpuType.CV_CFL_ARM7 | CpuType.CV_CFL_THUMB | CpuType.CV_CFL_ARMNT:
                 reg_lookup = REGISTER_NAMES_ARM
             case CpuType.CV_CFL_ARM64:
-                reg_lookup = REGISTER_NAMES_ARM64
+                cv_reg = RegisterARM64(register)
+                reg_lookup = ARM64_REG_TO_NAME
             case CpuType.CV_CFL_IA64_1 | CpuType.CV_CFL_IA64_2:
                 reg_lookup = REGISTER_NAMES_IA
             case CpuType.CV_CFL_AMD64:
@@ -1714,15 +2055,19 @@ MACHINE_AMD64_FRAME_REGISTERS = [
 ]
 
 def get_frame_register_name(frame_register: int, machine_config: MachineConfig) -> str:
-    # SzNameFrameReg (cvinfo.h)
+    # ExpandEncodedBasePointerReg (cvinfo.h)
 
     match machine_config.machine:
         case Machine.IMAGE_FILE_MACHINE_I386:
             register = MACHINE_I386_FRAME_REGISTERS[frame_register]
-            return get_c7_register_name(register=register, machine=machine_config.machine)
+            return get_c7_register_name(register=register.value, machine=machine_config.machine)
         case Machine.IMAGE_FILE_MACHINE_AMD64:
             register = MACHINE_AMD64_FRAME_REGISTERS[frame_register]
-            return get_c7_register_name(register=register, machine=machine_config.machine)
+            return get_c7_register_name(register=register.value, machine=machine_config.machine)
+        case Machine.IMAGE_FILE_MACHINE_ARM64:
+            # register = MACHINE_ARM64_FRAME_REGISTERS[frame_register]
+            # return get_c7_register_name(register=register.value, machine=machine_config.machine)
+            return f"???(0x{frame_register:X})"
         case _:
             raise ValueError
 
@@ -1850,12 +2195,27 @@ def yes_no(v: int | bool) -> str:
     return "yes" if v else "no"
 
 
+class CV_armswitchtype(enum.Enum):
+    CV_SWT_INT1         = 0
+    CV_SWT_UINT1        = 1
+    CV_SWT_INT2         = 2
+    CV_SWT_UINT2        = 3
+    CV_SWT_INT4         = 4
+    CV_SWT_UINT4        = 5
+    CV_SWT_POINTER      = 6
+    CV_SWT_UINT1SHL1    = 7
+    CV_SWT_UINT2SHL1    = 8
+    CV_SWT_INT1SHL1     = 9
+    CV_SWT_INT2SHL1     = 10
+    CV_SWT_TBB          = CV_SWT_UINT1SHL1
+    CV_SWT_TBH          = CV_SWT_UINT2SHL1
+
 
 def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module_info, dump_pos: bool=True):
     try:
         symbol_type_name = symbol.record.type.name.upper()
     except AttributeError:
-        raise ValueError("WARNING: Unknown record type")
+        raise ValueError(f"WARNING: Unknown record type: 0x{symbol.record.type:x})")
         # symbol_type_name = hex(symbol.record.type)
     if dump_pos:
         print(f"({symbol.pos:06X}) ", end="")
@@ -2085,9 +2445,15 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
         case CvSymbol.SymbolType.s_inlinesite_end:
             print()
         case CvSymbol.SymbolType.s_inlinees:
+            # FIXME: Pure guess
             print(f" Count={symbol.record.element.count}")
             for item in symbol.record.element.items:
                 print(f"\t0x{item:4x}")
+            assert symbol.record_size == 2 + 4 + symbol.record.element.count * 4
+        case CvSymbol.SymbolType.s_unk1166:
+            # FIXME: Pure guess
+            print(f" Field_0x0={symbol.record.element.field_0x0}")
+            assert symbol.record_size == 2 + 4
         case CvSymbol.SymbolType.s_heapallocsite:
             print(f" [{symbol.record.element.sect:04X}:{symbol.record.element.off:08X}], ", end="")
             print(f"instr length = {symbol.record.element.cb_instr}, type = {get_c7_type_name(symbol.record.element.typind)}")
@@ -2137,6 +2503,29 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
             print(f" 0x{symbol.record.element.sum_name:08X}: ({symbol.record.element.imod:4}, {symbol.record.element.ib_sym:08X}) {symbol.name.text}")
         case CvSymbol.SymbolType.s_constant_16t:
             print(f" Type: {get_c7_type_name(symbol.record.element.typind):>18}, Value: {get_numeric_string(symbol.record.element.value)}, {symbol.record.element.name.text}")
+        case CvSymbol.SymbolType.s_armswitchtable:
+            print()
+            print(f"\tBase address:   [{symbol.record.element.sect_base:04X}:{symbol.record.element.offset_base:08X}]")
+            print(f"\tBranch address: [{symbol.record.element.sect_branch:04X}:{symbol.record.element.offset_branch:08X}]")
+            print(f"\tTable address:  [{symbol.record.element.sect_table:04X}:{symbol.record.element.offset_table:08X}]")
+            print(f"\tEntry count = {symbol.record.element.count_entries}")
+            print(f"\tSwitch entry type = ", end="")
+            try:
+                match CV_armswitchtype(symbol.record.element.switch_type):
+                    case CV_armswitchtype.CV_SWT_INT1: print("signed byte")
+                    case CV_armswitchtype.CV_SWT_UINT1: print("unsigned byte")
+                    case CV_armswitchtype.CV_SWT_INT2: print("signed two byte")
+                    case CV_armswitchtype.CV_SWT_UINT2: print("unsigned two byte")
+                    case CV_armswitchtype.CV_SWT_INT4: print("signed four byte")
+                    case CV_armswitchtype.CV_SWT_UINT4: print("unsigned four byte")
+                    case CV_armswitchtype.CV_SWT_POINTER: print("pointer")
+                    case CV_armswitchtype.CV_SWT_UINT1SHL1: print("unsigned byte scaled by two")
+                    case CV_armswitchtype.CV_SWT_UINT2SHL1: print("unsigned two byte scaled by two")
+                    case CV_armswitchtype.CV_SWT_INT1SHL1: print("signed byte scaled by two")
+                    case CV_armswitchtype.CV_SWT_INT2SHL1: print("signed two byte scaled by two")
+                    case _: print(f"unknown(0x{symbol.record.element.switch_type:X})")
+            except ValueError:
+                print(f"unknown(0x{symbol.record.element.switch_type:X})")
         case CvSymbol.SymbolType.s_end:
             print()
             print()

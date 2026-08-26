@@ -204,6 +204,7 @@ class CvSymbol(KaitaiStruct):
         s_ldata_hlsl32 = 4451
         s_gdata_hlsl32_ex = 4452
         s_ldata_hlsl32_ex = 4453
+        s_unk1166 = 4454
         s_inlinees = 4456
         s_bprel32_indir = 4464
         s_regrel32_indir = 4465
@@ -246,6 +247,29 @@ class CvSymbol(KaitaiStruct):
         if  ((self.record.type == CvSymbol.SymbolType.s_procref_st) or (self.record.type == CvSymbol.SymbolType.s_lprocref_st)) :
             pass
             self.name._fetch_instances()
+
+
+    class Armswitchtable(KaitaiStruct):
+        """ARMSWITCHTABLE (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(CvSymbol.Armswitchtable, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.offset_base = self._io.read_u4le()
+            self.sect_base = self._io.read_u2le()
+            self.switch_type = self._io.read_u2le()
+            self.offset_branch = self._io.read_u4le()
+            self.offset_table = self._io.read_u4le()
+            self.sect_branch = self._io.read_u2le()
+            self.sect_table = self._io.read_u2le()
+            self.count_entries = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class BlockSym32(KaitaiStruct):
@@ -1130,7 +1154,10 @@ class CvSymbol(KaitaiStruct):
         def _read(self):
             self.type = KaitaiStream.resolve_enum(CvSymbol.SymbolType, self._io.read_u2le())
             _on = self.type
-            if _on == CvSymbol.SymbolType.s_block32:
+            if _on == CvSymbol.SymbolType.s_armswitchtable:
+                pass
+                self.element = CvSymbol.Armswitchtable(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_block32:
                 pass
                 self.element = CvSymbol.BlockSym32(True, self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_block32_st:
@@ -1340,12 +1367,18 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_unamespace:
                 pass
                 self.element = CvSymbol.Unamespace(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_unk1166:
+                pass
+                self.element = CvSymbol.Unk1166(self._io, self, self._root)
 
 
         def _fetch_instances(self):
             pass
             _on = self.type
-            if _on == CvSymbol.SymbolType.s_block32:
+            if _on == CvSymbol.SymbolType.s_armswitchtable:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_block32:
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_block32_st:
@@ -1553,6 +1586,9 @@ class CvSymbol(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_unamespace:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_unk1166:
                 pass
                 self.element._fetch_instances()
 
@@ -1769,6 +1805,21 @@ class CvSymbol(KaitaiStruct):
 
         def _read(self):
             self.name = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class Unk1166(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(CvSymbol.Unk1166, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.field_0x0 = self._io.read_u4le()
 
 
         def _fetch_instances(self):
