@@ -16,20 +16,15 @@ class GsiStream(KaitaiStruct):
         self._read()
 
     def _read(self):
-        self.header = GsiStream.Header(self._io, self, self._root)
-        self._raw_hash_records = self._io.read_bytes(self.header.hash_records_byte_size)
-        _io__raw_hash_records = KaitaiStream(BytesIO(self._raw_hash_records))
-        self.hash_records = GsiStream.PdbHashRecordArray(_io__raw_hash_records, self, self._root)
+        pass
 
 
     def _fetch_instances(self):
         pass
-        self.header._fetch_instances()
-        self.hash_records._fetch_instances()
 
-    class Header(KaitaiStruct):
+    class NewHeader(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
-            super(GsiStream.Header, self).__init__(_io)
+            super(GsiStream.NewHeader, self).__init__(_io)
             self._parent = _parent
             self._root = _root
             self._read()
@@ -37,10 +32,10 @@ class GsiStream(KaitaiStruct):
         def _read(self):
             self.version_signature = self._io.read_u4le()
             if not self.version_signature == 4294967295:
-                raise kaitaistruct.ValidationNotEqualError(4294967295, self.version_signature, self._io, u"/types/header/seq/0")
+                raise kaitaistruct.ValidationNotEqualError(4294967295, self.version_signature, self._io, u"/types/new_header/seq/0")
             self.version = self._io.read_u4le()
             if not self.version == 4026400768 + 19990810:
-                raise kaitaistruct.ValidationNotEqualError(4026400768 + 19990810, self.version, self._io, u"/types/header/seq/1")
+                raise kaitaistruct.ValidationNotEqualError(4026400768 + 19990810, self.version, self._io, u"/types/new_header/seq/1")
             self.hash_records_byte_size = self._io.read_u4le()
             self.bucket_information_byte_size = self._io.read_u4le()
 
@@ -58,11 +53,17 @@ class GsiStream(KaitaiStruct):
 
         def _read(self):
             self.offset_symbol_record_stream_plus_one = self._io.read_u4le()
-            self.reference_counter = self._io.read_u4le()
+            if  ((self.offset_symbol_record_stream_plus_one != 0) and (self.offset_symbol_record_stream_plus_one != 4294967295)) :
+                pass
+                self.reference_counter = self._io.read_u4le()
+
 
 
         def _fetch_instances(self):
             pass
+            if  ((self.offset_symbol_record_stream_plus_one != 0) and (self.offset_symbol_record_stream_plus_one != 4294967295)) :
+                pass
+
 
 
     class PdbHashRecordArray(KaitaiStruct):

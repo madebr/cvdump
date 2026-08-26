@@ -3,6 +3,7 @@
 import argparse
 import binascii
 import datetime
+import io
 import itertools
 import pathlib
 import enum
@@ -20,6 +21,7 @@ from cvdump.kaitai.gsi_stream import GsiStream
 from cvdump.kaitai.info_stream import InfoStream
 from cvdump.kaitai.modi_stream import ModiStream
 from cvdump.kaitai.names_stream import NamesStream
+import cvdump.kaitai.omf
 from cvdump.kaitai.tpi_stream import TpiStream
 
 import kaitaistruct
@@ -116,13 +118,20 @@ def main():
                 dbi = get_dbi()
                 private_symbol_record_stream_symbols = CvSymbolStream(delta_pos=0, _io=kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.symbol_record_stream)))
             return private_symbol_record_stream_symbols
-        def get_gsi() -> GsiStream:
+        def get_gsi_records() -> GsiStream.PdbHashRecordArray:
             nonlocal private_gsi
             if not private_gsi:
                 dbi = get_dbi()
                 gsi_stream_index = dbi.header.global_symbol_stream
-                ks = kaitaistruct.KaitaiStream(msf_file.create_stream(gsi_stream_index))
-                private_gsi = GsiStream(ks)
+                gsi_stream = msf_file.create_stream(gsi_stream_index)
+                ks = kaitaistruct.KaitaiStream(gsi_stream)
+                try:
+                    header = GsiStream.NewHeader(ks)
+                    records_byte_stream = io.BytesIO(gsi_stream.read(header.hash_records_byte_size))
+                    private_gsi = GsiStream.PdbHashRecordArray(kaitaistruct.KaitaiStream(records_byte_stream))
+                except kaitaistruct.ValidationFailedError:
+                    gsi_stream.seek(0)
+                    private_gsi = GsiStream.PdbHashRecordArray(ks)
             return private_gsi
         def get_info() -> InfoStream:
             nonlocal private_info
@@ -420,8 +429,6 @@ def main():
 
                         if "GRIDCLIP.OBJ" in mod_info.module_name:
                             pass
-                        import cvdump.kaitai.omf
-                        import io
                         bs = io.BytesIO(module_stream.c11_line_info)
                         ks = kaitaistruct.KaitaiStream(bs)
                         sm = cvdump.kaitai.omf.Omf.OmfSourceModule(ks)
@@ -463,8 +470,10 @@ def main():
             symbol_record_lut = {}
             for symbol in symbol_records.entries:
                 symbol_record_lut[symbol.pos] = symbol
-            gsi = get_gsi()
-            for record in gsi.hash_records.entries:
+            gsi_records = get_gsi_records()
+            for record in gsi_records.entries:
+                if record.offset_symbol_record_stream_plus_one in (0, 0xffffffff):
+                    break
                 symbol = symbol_record_lut[record.offset_symbol_record_stream_plus_one - 1]
                 dump_symbol(symbol, None, None, dump_pos=False)
 

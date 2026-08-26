@@ -1,14 +1,8 @@
 meta:
   id: gsi_stream
   endian: le
-seq:
-  - id: header
-    type: header
-  - id: hash_records
-    type: pdb_hash_record_array
-    size: header.hash_records_byte_size
 types:
-  header:
+  new_header:
     seq:
       - id: version_signature
         type: u4
@@ -32,3 +26,5 @@ types:
         doc: 'offset + 1'
       - id: reference_counter
         type: u4
+        doc: '0 in MSVC4.2 PDBs, -1 in MSVC4.1 PDBs'
+        if: offset_symbol_record_stream_plus_one != 0 and offset_symbol_record_stream_plus_one != 0xffffffff
