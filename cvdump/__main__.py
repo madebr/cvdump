@@ -266,7 +266,7 @@ def main():
         if args.create_zip:
             with zipfile.ZipFile(args.create_zip, "w") as zf:
                 w = len(f"{msf_file.count_streams:d}")
-                for i in range(1, msf_file.count_streams):
+                for i in range(msf_file.count_streams):
                     zip_entry_name = f"{i:0{w}d}.bin"
                     zf.writestr(zip_entry_name, msf_file.create_stream(i).read())
 

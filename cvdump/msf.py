@@ -95,6 +95,9 @@ class MsfStream:
 
 
 class MsfFile:
+    """ The previous Stream directory"""
+    PREVIOUS_STREAM_DIRECTORY = 0
+
     """ The pdb stream is always at index 1"""
     PDB_STREAM_INDEX = 1
 
