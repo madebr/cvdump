@@ -222,11 +222,12 @@ class CvSymbol(KaitaiStruct):
         s_defrange_constval_on_entry = 4479
         s_defrange_globalsym_on_entry = 4480
         s_altobjname = 4481
-    def __init__(self, pos, _io, _parent=None, _root=None):
+    def __init__(self, pos, do_align4, _io, _parent=None, _root=None):
         super(CvSymbol, self).__init__(_io)
         self._parent = _parent
         self._root = _root or self
         self.pos = pos
+        self.do_align4 = do_align4
         self._read()
 
     def _read(self):
@@ -238,7 +239,10 @@ class CvSymbol(KaitaiStruct):
             pass
             self.name = pascal_string.PascalString(self._io)
 
-        self.trailing_padding = self._io.read_bytes((4 - self._io.pos() % 4) % 4)
+        if self.do_align4:
+            pass
+            self.trailing_padding = self._io.read_bytes((4 - self._io.pos() % 4) % 4)
+
 
 
     def _fetch_instances(self):
@@ -247,6 +251,9 @@ class CvSymbol(KaitaiStruct):
         if  ((self.record.type == CvSymbol.SymbolType.s_procref_st) or (self.record.type == CvSymbol.SymbolType.s_lprocref_st)) :
             pass
             self.name._fetch_instances()
+
+        if self.do_align4:
+            pass
 
 
     class Armswitchtable(KaitaiStruct):
@@ -713,6 +720,21 @@ class CvSymbol(KaitaiStruct):
                 pass
                 self.gaps[i]._fetch_instances()
 
+
+
+    class Empty(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(CvSymbol.Empty, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            pass
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class EndArgSym(KaitaiStruct):
@@ -1262,6 +1284,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_gproc32_16t:
                 pass
                 self.element = CvSymbol.Procsym3216t(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_gproc32_id:
+                pass
+                self.element = CvSymbol.Procsym32(True, self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_gproc32_st:
                 pass
                 self.element = CvSymbol.Procsym32(False, self._io, self, self._root)
@@ -1319,6 +1344,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_objname_st:
                 pass
                 self.element = CvSymbol.ObjnameSym(False, self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_proc_id_end:
+                pass
+                self.element = CvSymbol.Empty(self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_procref:
                 pass
                 self.element = CvSymbol.Refsym2(self._io, self, self._root)
@@ -1483,6 +1511,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_gproc32_16t:
                 pass
                 self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_gproc32_id:
+                pass
+                self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_gproc32_st:
                 pass
                 self.element._fetch_instances()
@@ -1538,6 +1569,9 @@ class CvSymbol(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_objname_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_proc_id_end:
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_procref:

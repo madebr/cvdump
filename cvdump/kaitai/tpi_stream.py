@@ -589,6 +589,11 @@ class TpiStream(KaitaiStruct):
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfArglist(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_typeserver2:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfTypeserver2(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_udt_mod_src_line:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
@@ -722,6 +727,9 @@ class TpiStream(KaitaiStruct):
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_substr_list:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_typeserver2:
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_udt_mod_src_line:
@@ -1710,6 +1718,24 @@ class TpiStream(KaitaiStruct):
             pass
 
 
+    class LfTypeserver2(KaitaiStruct):
+        """lfTypeServer2 (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfTypeserver2, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.sig70 = self._io.read_bytes(16)
+            self.age = self._io.read_u4le()
+            self.name = (self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII")
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class LfUdtModSrcLine(KaitaiStruct):
         """lfUdtModSrcLine (cvinfo.h)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -1893,6 +1919,30 @@ class TpiStream(KaitaiStruct):
         def _fetch_instances(self):
             pass
             self.leaf._fetch_instances()
+
+
+    class Records(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.Records, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.records = []
+            i = 0
+            while not self._io.is_eof():
+                self.records.append(TpiStream.Record(self._io, self, self._root))
+                i += 1
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.records)):
+                pass
+                self.records[i]._fetch_instances()
+
 
 
     class TpiHeader(KaitaiStruct):

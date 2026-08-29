@@ -20,7 +20,11 @@ seq:
     repeat-expr: header.ti_max - header.ti_min
 
 types:
-
+  records:
+    seq:
+      - id: records
+        type: record
+        repeat: eos
   tpi_header:
     params:
       - id: version
@@ -173,6 +177,9 @@ types:
             'leaf::leaf_type::lf_buildinfo': lf_buildinfo
             'leaf::leaf_type::lf_func_id': lf_func_id
             'leaf::leaf_type::lf_mfunc_id': lf_mfunc_id
+
+            # COFF: .debug$T
+            'leaf::leaf_type::lf_typeserver2': lf_typeserver2
     enums:
       leaf_type:
         0x0001: lf_modifier_16t
@@ -1032,3 +1039,15 @@ types:
       - id: name
         type: strz
         encoding: ASCII
+  lf_typeserver2:
+    doc: lfTypeServer2 (cvinfo.h)
+    seq:
+      - id: sig70
+        doc: GUID
+        size: 16
+      - id: age
+        type: u4
+      - id: name
+        type: strz
+        encoding: ASCII
+

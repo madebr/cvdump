@@ -9,6 +9,8 @@ meta:
 params:
   - id: pos
     type: u4
+  - id: do_align4
+    type: bool
 seq:
   - id: record_size
     type: u2
@@ -20,6 +22,7 @@ seq:
     if: 'record.type == symbol_type::s_procref_st or record.type == symbol_type::s_lprocref_st'
     type: pascal_string
   - id: trailing_padding
+    if: do_align4
     size: (4 - ((_io.pos) % 4)) % 4
 types:
   record:
@@ -110,6 +113,12 @@ types:
             'symbol_type::s_gdata32_16t': datasym32_16t
             'symbol_type::s_armswitchtable': armswitchtable
             'symbol_type::s_unk1166': unk1166
+
+            # object
+            'symbol_type::s_gproc32_id': procsym32(true)
+            'symbol_type::s_proc_id_end': empty
+  empty:
+    seq: []
   udtsym_16t:
     doc: 'UDTSYM_16t'
     seq:

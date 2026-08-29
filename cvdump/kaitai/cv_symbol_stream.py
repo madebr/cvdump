@@ -10,18 +10,19 @@ if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 11):
     raise Exception("Incompatible Kaitai Struct Python API: 0.11 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class CvSymbolStream(KaitaiStruct):
-    def __init__(self, delta_pos, _io, _parent=None, _root=None):
+    def __init__(self, delta_pos, align4, _io, _parent=None, _root=None):
         super(CvSymbolStream, self).__init__(_io)
         self._parent = _parent
         self._root = _root or self
         self.delta_pos = delta_pos
+        self.align4 = align4
         self._read()
 
     def _read(self):
         self.entries = []
         i = 0
         while not self._io.is_eof():
-            self.entries.append(cv_symbol.CvSymbol(self._io.pos() + self.delta_pos, self._io))
+            self.entries.append(cv_symbol.CvSymbol(self._io.pos() + self.delta_pos, self.align4, self._io))
             i += 1
 
 

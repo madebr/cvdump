@@ -41,5 +41,5 @@ types:
   symbol_entries:
     seq:
       - id: entries
-        type: cv_symbol(_io.pos + 4)
+        type: cv_symbol(_io.pos + 4, true)
         repeat: eos

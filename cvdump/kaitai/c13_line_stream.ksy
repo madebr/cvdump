@@ -1,5 +1,7 @@
 meta:
   id: c13_line_stream
+  imports:
+    - cv_symbol_stream
   endian: le
 seq:
   - id: subsections
@@ -17,6 +19,11 @@ types:
           cases:
             'debug_s_subsection_type::debug_s_filechksms': debug_filechecksums
             'debug_s_subsection_type::debug_s_lines': debug_lines(header.size)
+            'debug_s_subsection_type::debug_s_symbols': cv_symbol_stream(0, false)
+            'debug_s_subsection_type::debug_s_framedata': framedatas
+            'debug_s_subsection_type::debug_s_stringtable': stringtable(header.size)
+      - id: padding
+        size: (4 - (_io.pos % 4)) % 4
   subsection_header:
     seq:
       - id: type
@@ -93,6 +100,51 @@ types:
         value: '(linenum_delta_statement >> 24) & 0x7f'
       is_statement:
         value: 'linenum_delta_statement >> 31'
+  framedatas:
+    doc: 'DumpModFramedata (dumpsym7cpp)'
+    seq:
+      - id: rva_con
+        type: u4
+      - id: frames
+        type: framedata
+        repeat: eos
+  framedata:
+    doc: 'tagFRAMEDATA (cvinfo.h)'
+    seq:
+      - id: rva_start
+        doc: ulRvaStart
+        type: u4
+      - id: size_block
+        doc: cbBlock
+        type: u4
+      - id: size_locals
+        doc: cbLocals
+        type: u4
+      - id: size_params
+        doc: cbParams
+        type: u4
+      - id: size_stack_max
+        doc: cbStkMax
+        type: u4
+      - id: frame_func
+        doc: frameFunc
+        type: u4
+      - id: size_prolog
+        doc: cbProlog
+        type: u2
+      - id: size_saved_regs
+        doc: cbSavedRegs
+        type: u2
+      - id: flags
+        doc: '0x1: fHasSEH, 0x2: fHasEH, 0x4: fIsFunctionStart'
+        type: u4
+  stringtable:
+    params:
+      - id: size
+        type: u4
+    seq:
+      - id: data
+        size: size
 
 enums:
   debug_s_subsection_type:

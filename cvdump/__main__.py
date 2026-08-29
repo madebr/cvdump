@@ -14,6 +14,7 @@ from cvdump.dump_tpi import dump_ipi, dump_tpi
 from cvdump.dump_symbol import dump_symbol, MachineConfig
 from cvdump.machine import Machine
 from cvdump.msf import MsfFile
+from cvdump.names import StringTable
 from cvdump.kaitai.c13_line_stream import C13LineStream
 from cvdump.kaitai.cv_symbol_stream import CvSymbolStream
 from cvdump.kaitai.dbi_stream import DbiStream
@@ -33,26 +34,6 @@ class PDBFeatureSig(enum.Enum):
     MinimalDebugInfo = 0x494e494d
 
 
-class CV_SourceChksum_t(enum.IntEnum):
-    CHKSUM_TYPE_NONE = 0
-    CHKSUM_TYPE_MD5 = 1
-    CHKSUM_TYPE_SHA1 = 2
-    CHKSUM_TYPE_SHA_256 = 3
-
-CHECKSUM_TO_NAME: dict[CV_SourceChksum_t, str] = {
-    CV_SourceChksum_t.CHKSUM_TYPE_NONE: "None",
-    CV_SourceChksum_t.CHKSUM_TYPE_MD5: "MD5",
-    CV_SourceChksum_t.CHKSUM_TYPE_SHA1: "SHA1",
-    CV_SourceChksum_t.CHKSUM_TYPE_SHA_256: "SHA_256",
-}
-
-
-def get_hash_name(hash_id: int) -> str:
-    try:
-        return CHECKSUM_TO_NAME.get(CV_SourceChksum_t(hash_id))
-    except (IndexError, ValueError):
-        return f"???({hash_id:02X})"
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -60,7 +41,7 @@ def main():
         allow_abbrev=False,
     )
     parser.add_argument("--ls",  dest="list_streams", action="store_true", help="List MSF streams")
-    parser.add_argument("--info",  dest="info", action="store_true", help="PDB Information")
+    parser.add_argument("--info",  dest="dump_info", action="store_true", help="PDB Information")
     parser.add_argument("-g",  dest="dump_globals", action="store_true", help="Global symbols")
     parser.add_argument("-p",  dest="dump_publics", action="store_true", help="Public symbols")
     parser.add_argument("-l",  dest="dump_lines", action="store_true", help="Source lines")
@@ -91,8 +72,9 @@ def main():
         private_named_stream_map_initialized = False
         private_names = None
         private_names_initialized = False
-        private_name_index_to_name = None
-        private_name_offset_to_name = None
+        private_string_table = None
+        # private_name_index_to_name = None
+        # private_name_offset_to_name = None
         private_module_streams = {}
         private_machine = None
 
@@ -118,7 +100,7 @@ def main():
             nonlocal private_symbol_record_stream_symbols
             if not private_symbol_record_stream_symbols:
                 dbi = get_dbi()
-                private_symbol_record_stream_symbols = CvSymbolStream(delta_pos=0, _io=kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.symbol_record_stream)))
+                private_symbol_record_stream_symbols = CvSymbolStream(delta_pos=0, align4=True, _io=kaitaistruct.KaitaiStream(msf_file.create_stream(dbi.header.symbol_record_stream)))
             return private_symbol_record_stream_symbols
         def get_gsi_records() -> PsiGsi.PdbHashRecordArray:
             nonlocal private_gsi
@@ -202,38 +184,24 @@ def main():
             private_names_initialized = True
             return private_names
 
-        def process_namemap() ->dict[int, str]:
-            nonlocal private_name_index_to_name
-            nonlocal private_name_offset_to_name
-            private_name_index_to_name = {}
-            private_name_offset_to_name = {}
+        def process_namemap() -> StringTable:
+            nonlocal private_string_table
+            # nonlocal private_name_index_to_name
+            # nonlocal private_name_offset_to_name
+            # private_name_index_to_name = {}
+            # private_name_offset_to_name = {}
             names = get_names()
             if names:
                 if names.hash_version == 1:
-                    i = 0
-                    string_start = 0
-                    while string_start is not None:
-                        string_end = names.string_buffer.find(0, string_start)
-                        if string_end == -1:
-                            text = names.string_buffer[string_start:]
-                            next_string_start = None
-                        else:
-                            text = names.string_buffer[string_start:string_end]
-                            next_string_start = string_end + 1
-                        private_name_index_to_name[i] = text
-                        private_name_offset_to_name[string_start] = text
-                        string_start = next_string_start
-                        i += 1
+                    private_string_table = StringTable.from_bytes(names.string_buffer)
                 else:
                     print(f"Unsupported names hash version ({names.hash_version}) (PLEASE SHARE THIS PDB!)")
                     raise ValueError
-            return private_name_index_to_name
+            return private_string_table
 
         def get_name_offset_to_name() -> dict[int, str]:
-            nonlocal private_name_offset_to_name
-            if private_name_offset_to_name is None:
-                process_namemap()
-            return private_name_offset_to_name
+            string_table = process_namemap()
+            return string_table._offset_to_name
 
         def get_module_stream(module_index: int) -> ModiStream:
             nonlocal private_module_streams
@@ -328,7 +296,7 @@ def main():
                 for batch in itertools.batched((hex(b) for b in msf_file.stream_block_maps[stream_index]), 10):
                     print("     ", " ".join(batch))
 
-        if args.info:
+        if args.dump_info:
             info = get_info()
             print()
             print("*** PDF INFORMATION:")
@@ -420,13 +388,14 @@ def main():
                                 case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
                                     pass
                                 case C13LineStream.DebugSSubsectionType.debug_s_lines:
+                                    cvdump.dump_c13.dump_lines(subsection.contents)
                                     for table_i, table in enumerate(subsection.contents.tables.items):
                                         try:
                                             cksum = checksums[table.fileid]
                                         except KeyError:
                                             raise
                                         name_offset_to_name = get_name_offset_to_name()
-                                        filename = name_offset_to_name[cksum.name_index].decode()
+                                        filename = name_offset_to_name[cksum.name_index]
                                         start = subsection.contents.off_con if table_i == 0 else (subsection.contents.off_con + table.lines[0].offset)
                                         end = (subsection.contents.off_con + subsection.contents.count_con) if table_i + 1 == len(subsection.contents.tables.items) else (subsection.contents.off_con + subsection.contents.tables.items[table_i + 1].lines[0].offset)
                                         print()
@@ -445,16 +414,9 @@ def main():
                                 case _:
                                     raise ValueError
                     elif module_stream.c11_line_size:
-
-                        if "GRIDCLIP.OBJ" in mod_info.module_name:
-                            pass
                         bs = io.BytesIO(module_stream.c11_line_info)
                         ks = kaitaistruct.KaitaiStream(bs)
                         sm = cvdump.kaitai.omf.Omf.OmfSourceModule(ks)
-                        if False:
-                            print("  Contributor Segments:")
-                            for iseg in range(sm.c_seg):
-                                print(f"    {sm.unks[iseg]:04X}:{sm.segment_ranges[iseg].begin:08X}-{sm.segment_ranges[iseg].end:08X}")
 
                         for ifile in range(sm.c_file):
                             bs.seek(sm.file_starts[ifile])

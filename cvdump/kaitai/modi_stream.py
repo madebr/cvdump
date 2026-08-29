@@ -75,7 +75,7 @@ class ModiStream(KaitaiStruct):
             self.entries = []
             i = 0
             while not self._io.is_eof():
-                self.entries.append(cv_symbol.CvSymbol(self._io.pos() + 4, self._io))
+                self.entries.append(cv_symbol.CvSymbol(self._io.pos() + 4, True, self._io))
                 i += 1
 
 

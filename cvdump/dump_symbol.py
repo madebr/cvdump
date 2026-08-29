@@ -2311,7 +2311,7 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
         case CvSymbol.SymbolType.s_buildinfo:
             print(f"\t{get_c7_type_name(symbol.record.element.id)}")
             print()
-        case CvSymbol.SymbolType.s_lproc32 | CvSymbol.SymbolType.s_gproc32 | CvSymbol.SymbolType.s_lproc32_st | CvSymbol.SymbolType.s_gproc32_st:
+        case CvSymbol.SymbolType.s_lproc32 | CvSymbol.SymbolType.s_gproc32 | CvSymbol.SymbolType.s_gproc32_id | CvSymbol.SymbolType.s_lproc32_st | CvSymbol.SymbolType.s_gproc32_st:
             is_id: bool = False # symbol.record.type
             print(f" [{symbol.record.element.segment:04X}:{symbol.record.element.offset:08X}], Cb: {symbol.record.element.length:08X}, {'ID' if is_id else 'Type'}: {get_c7_type_name(symbol.record.element.type_index):>18}, {symbol.record.element.name.text}")
             print(f"\tParent: {symbol.record.element.pointer_parent:08X}, End: {symbol.record.element.pointer_end:08X}, next: {symbol.record.element.pointer_next:08X}")
@@ -2526,6 +2526,8 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
                     case _: print(f"unknown(0x{symbol.record.element.switch_type:X})")
             except ValueError:
                 print(f"unknown(0x{symbol.record.element.switch_type:X})")
+        case CvSymbol.SymbolType.s_proc_id_end:
+            print()
         case CvSymbol.SymbolType.s_end:
             print()
             print()

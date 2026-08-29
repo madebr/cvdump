@@ -1,5 +1,7 @@
 import decimal
 import enum
+import uuid
+import typing
 
 from cvdump.kaitai.names_stream import NamesStream
 from cvdump.kaitai.tpi_stream import TpiStream
@@ -781,16 +783,16 @@ def dump_tpi(tpi: TpiStream):
     dump_cvstream(tpi, None)
 
 
-def dump_ipi(tpi: TpiStream, name_offset_to_name: dict[int, str]):
+def dump_ipi(tpi: TpiStream, names_stream: dict[int, str]):
     print()
     print("*** IDs")
     print()
-    dump_cvstream(tpi, name_offset_to_name)
+    dump_cvstream(tpi, names_stream)
 
 
-def collect_udt(tpi: TpiStream) -> dict[str, int]:
+def collect_udt(tpi_records: typing.Iterable[TpiStream.Record], ti_min: int) -> dict[str, int]:
     udt: dict[str, int] = {}
-    for tpi_id, record in enumerate(tpi.records, tpi.header.ti_min):
+    for tpi_id, record in enumerate(tpi_records, ti_min):
         match record.leaf.type:
             case TpiStream.Leaf.LeafType.lf_enum_16t | \
                  TpiStream.Leaf.LeafType.lf_union_16t | \
@@ -815,10 +817,14 @@ def collect_udt(tpi: TpiStream) -> dict[str, int]:
     return udt
 
 
-def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
+def dump_cvstream(tpi: TpiStream, names_stream: NamesStream | None):
+    dump_type_stream(tpi.records, ti_min=tpi.header.ti_min, names_stream=names_stream)
+
+
+def dump_type_stream(tpi_records: typing.Iterable[TpiStream.Record], ti_min: int, names_stream: NamesStream | None):
     supports_query_udt = True
-    collected_udt = collect_udt(tpi)
-    for tpi_id, record in enumerate(tpi.records, tpi.header.ti_min):
+    collected_udt = collect_udt(tpi_records, ti_min=ti_min)
+    for tpi_id, record in enumerate(tpi_records, ti_min):
         print(f"0x{tpi_id:04x} : Length = {record.record_size}, Leaf = 0x{record.leaf.type:04x} {record.leaf.type.name.upper()}", end="")
         if record.record_size < 2:
             assert record.record_size >= 2
@@ -1260,7 +1266,8 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
             # TPI
             case TpiStream.Leaf.LeafType.lf_udt_mod_src_line:
                 print()
-                source_file = name_offset_to_name.get(record.leaf.body.src)
+                source_file = names_stream.get_text_at_offset(record.leaf.body.src)
+                raise ValueError
                 if source_file is None:
                     print("Error no name")
                 else:
@@ -1297,6 +1304,9 @@ def dump_cvstream(tpi: TpiStream, name_offset_to_name: dict[int, str] | None):
                 print(f"\tType = {get_c7_type_name(record.leaf.body.type)}\t", end="")
                 print(f"\tParent = {get_c7_type_name(record.leaf.body.parent_type)}\t", end="")
                 print(record.leaf.body.name)
+            case TpiStream.Leaf.LeafType.lf_typeserver2:
+                print()
+                print(f"\t\tGUID={uuid.UUID(bytes_le=record.leaf.body.sig70)}, age = 0x{record.leaf.body.age:08x}, PDB name = '{record.leaf.body.name}'")
             case _:
                 raise ValueError(record.leaf.type, repr(record.leaf.type))
         print()

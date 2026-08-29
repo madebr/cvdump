@@ -3,6 +3,7 @@
 
 import kaitaistruct
 from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
+from cvdump.kaitai import cv_symbol_stream
 from enum import IntEnum
 
 
@@ -204,6 +205,72 @@ class C13LineStream(KaitaiStruct):
             pass
 
 
+    class Framedata(KaitaiStruct):
+        """tagFRAMEDATA (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(C13LineStream.Framedata, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.rva_start = self._io.read_u4le()
+            self.size_block = self._io.read_u4le()
+            self.size_locals = self._io.read_u4le()
+            self.size_params = self._io.read_u4le()
+            self.size_stack_max = self._io.read_u4le()
+            self.frame_func = self._io.read_u4le()
+            self.size_prolog = self._io.read_u2le()
+            self.size_saved_regs = self._io.read_u2le()
+            self.flags = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class Framedatas(KaitaiStruct):
+        """DumpModFramedata (dumpsym7cpp)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(C13LineStream.Framedatas, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.rva_con = self._io.read_u4le()
+            self.frames = []
+            i = 0
+            while not self._io.is_eof():
+                self.frames.append(C13LineStream.Framedata(self._io, self, self._root))
+                i += 1
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.frames)):
+                pass
+                self.frames[i]._fetch_instances()
+
+
+
+    class Stringtable(KaitaiStruct):
+        def __init__(self, size, _io, _parent=None, _root=None):
+            super(C13LineStream.Stringtable, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self.size = size
+            self._read()
+
+        def _read(self):
+            self.data = self._io.read_bytes(self.size)
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class Subsection(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(C13LineStream.Subsection, self).__init__(_io)
@@ -219,14 +286,30 @@ class C13LineStream(KaitaiStruct):
                 self._raw_contents = self._io.read_bytes(self.header.size)
                 _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
                 self.contents = C13LineStream.DebugFilechecksums(_io__raw_contents, self, self._root)
+            elif _on == C13LineStream.DebugSSubsectionType.debug_s_framedata:
+                pass
+                self._raw_contents = self._io.read_bytes(self.header.size)
+                _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
+                self.contents = C13LineStream.Framedatas(_io__raw_contents, self, self._root)
             elif _on == C13LineStream.DebugSSubsectionType.debug_s_lines:
                 pass
                 self._raw_contents = self._io.read_bytes(self.header.size)
                 _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
                 self.contents = C13LineStream.DebugLines(self.header.size, _io__raw_contents, self, self._root)
+            elif _on == C13LineStream.DebugSSubsectionType.debug_s_stringtable:
+                pass
+                self._raw_contents = self._io.read_bytes(self.header.size)
+                _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
+                self.contents = C13LineStream.Stringtable(self.header.size, _io__raw_contents, self, self._root)
+            elif _on == C13LineStream.DebugSSubsectionType.debug_s_symbols:
+                pass
+                self._raw_contents = self._io.read_bytes(self.header.size)
+                _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
+                self.contents = cv_symbol_stream.CvSymbolStream(0, False, _io__raw_contents)
             else:
                 pass
                 self.contents = self._io.read_bytes(self.header.size)
+            self.padding = self._io.read_bytes((4 - self._io.pos() % 4) % 4)
 
 
         def _fetch_instances(self):
@@ -236,7 +319,16 @@ class C13LineStream(KaitaiStruct):
             if _on == C13LineStream.DebugSSubsectionType.debug_s_filechksms:
                 pass
                 self.contents._fetch_instances()
+            elif _on == C13LineStream.DebugSSubsectionType.debug_s_framedata:
+                pass
+                self.contents._fetch_instances()
             elif _on == C13LineStream.DebugSSubsectionType.debug_s_lines:
+                pass
+                self.contents._fetch_instances()
+            elif _on == C13LineStream.DebugSSubsectionType.debug_s_stringtable:
+                pass
+                self.contents._fetch_instances()
+            elif _on == C13LineStream.DebugSSubsectionType.debug_s_symbols:
                 pass
                 self.contents._fetch_instances()
             else:

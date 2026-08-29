@@ -5,6 +5,7 @@ KSC_FLAGS := -t python --python-package cvdump.kaitai
 SCHEMAS := \
     dbi_stream.ksy \
 	c13_line_stream.ksy \
+	coff.ksy \
 	cv_symbol.ksy \
 	cv_symbol_stream.ksy \
     info_stream.ksy \
