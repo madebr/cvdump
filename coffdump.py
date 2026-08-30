@@ -90,9 +90,17 @@ def main():
                 debug_s_things = cvdump.kaitai.coff.Coff.DebugS(size=section_header.size_of_raw_data, _io=kaitaistruct.KaitaiStream(io.BytesIO(section_raw_data)))
                 print()
                 print(f"    Signature: {debug_s_things.signature}")
-                if hasattr(debug_s_things, "c13_stream"):
-                    names_table = None
+                if hasattr(debug_s_things, "symbols"):
+                    # Visual Studio 4.2
+                    assert debug_s_things.signature == 1
+                    print("** SYMBOLS")
+                    for symbol in debug_s_things.symbols.entries:
+                        cvdump.dump_symbol.dump_symbol(symbol=symbol, module_info=None, machine_config=machine_config)
+                elif hasattr(debug_s_things, "c13_stream"):
+                    # Visual Studio 2012
+                    assert debug_s_things.signature == 4
                     checksums = {}
+                    names_table = None
                     for subsection in debug_s_things.c13_stream.subsections:
                         match subsection.header.type:
                             case C13LineStream.DebugSSubsectionType.debug_s_stringtable:
@@ -120,17 +128,25 @@ def main():
                             case _:
                                 raise ValueError(subsection.header.type, subsection.header.type.name.upper())
 
+                    if names_table is not None:
+                        print()
+                        print("Names table:")
+                        for k, v in names_table.offset_to_name.items():
+                            print(f"{k:4}: {v}")
+
                 else:
                     raise ValueError(f"Unsupported .debug$S (signature=0x{debug_s_things.signature}:x)")
             elif section_header.name == b".debug$T":
                 coff_file.seek(section_header.pointer_to_raw_data)
                 debug_t_data = coff_file.read(section_header.size_of_raw_data)
                 debug_t_signature, = struct.unpack_from("<I", debug_t_data)
-                if debug_t_signature == 4:
+                if debug_t_signature in (1, 4):
+                    # 1: Visual Studio 4.2
+                    # 4: Visual Studio 2012
                     bs = io.BytesIO(debug_t_data)
                     bs.seek(4)
                     tpi_records = cvdump.kaitai.tpi_stream.TpiStream.Records(kaitaistruct.KaitaiStream(bs))
-                    cvdump.dump_tpi.dump_type_stream(tpi_records=tpi_records.records, ti_min=0, names_stream=names_table)
+                    cvdump.dump_tpi.dump_type_stream(tpi_records=tpi_records.records, ti_min=0, names_stream=None)
                 else:
                     raise ValueError(f"Unsupported .debug$T signature: 0x{debug_t_signature:X}")
             elif section_header.name in (b".data\x00\x00\x00", b".rdata\x00\x00") and section_header.characteristics & DATA_CHARACTERISTICS == DATA_CHARACTERISTICS:
@@ -160,13 +176,6 @@ def main():
                 print(" Relocations:")
                 for relocation in relocations.items:
                     print(f"- address: 0x{relocation.virtual_address:08x}, symbol={relocation.symbol_table_index:6}, type={relocation_type_to_str(relocation.type, machine=machine)}")
-
-
-        if names_table is not None:
-            print()
-            print("Names table:")
-            for k, v in names_table.offset_to_name.items():
-                print(f"{k:4}: {v}")
 
         coff_file.seek(coff.header.pointer_to_symbol_table + 0x12 * coff.header.number_of_symbols)
         string_table_bytes = coff_file.read()

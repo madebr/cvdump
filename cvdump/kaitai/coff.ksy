@@ -2,6 +2,7 @@ meta:
   id: coff
   imports:
     - c13_line_stream
+    - cv_symbol_stream
   endian: le
 seq:
   - id: header
@@ -75,11 +76,15 @@ types:
       - id: signature
         type: u4
         valid:
-          any-of: [4]
+          any-of: [1, 4]
       - id: c13_stream
         if: signature == 4
         size: size - 4
         type: c13_line_stream
+      - id: symbols
+        if: signature == 1
+        size: size - 4
+        type: cv_symbol_stream(0, false)
 
   symbol_table:
     seq:

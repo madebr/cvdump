@@ -178,7 +178,9 @@ types:
             'leaf::leaf_type::lf_func_id': lf_func_id
             'leaf::leaf_type::lf_mfunc_id': lf_mfunc_id
 
-            # COFF: .debug$T
+            # COFF: .debug$T (Visual Studio 4.2)
+            'leaf::leaf_type::lf_typeserver_st': lf_typeserver_st
+            # COFF: .debug$T (Visual Studio 2012)
             'leaf::leaf_type::lf_typeserver2': lf_typeserver2
     enums:
       leaf_type:
@@ -1039,6 +1041,14 @@ types:
       - id: name
         type: strz
         encoding: ASCII
+  lf_typeserver_st:
+    seq:
+      - id: signature
+        type: u4
+      - id: age
+        type: u4
+      - id: name
+        type: pascal_string
   lf_typeserver2:
     doc: lfTypeServer2 (cvinfo.h)
     seq:

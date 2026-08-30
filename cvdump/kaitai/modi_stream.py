@@ -3,8 +3,8 @@
 
 import kaitaistruct
 from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
-from cvdump.kaitai import cv_symbol
 from cvdump.kaitai import c13_line_stream
+from cvdump.kaitai import cv_symbol
 
 
 if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 11):

@@ -1307,6 +1307,9 @@ def dump_type_stream(tpi_records: typing.Iterable[TpiStream.Record], ti_min: int
             case TpiStream.Leaf.LeafType.lf_typeserver2:
                 print()
                 print(f"\t\tGUID={uuid.UUID(bytes_le=record.leaf.body.sig70)}, age = 0x{record.leaf.body.age:08x}, PDB name = '{record.leaf.body.name}'")
+            case TpiStream.Leaf.LeafType.lf_typeserver_st:
+                print()
+                print(f"\t\tSignature={record.leaf.body.signature:08X}, age = 0x{record.leaf.body.age:08x}, PDB name = '{record.leaf.body.name}'")
             case _:
                 raise ValueError(record.leaf.type, repr(record.leaf.type))
         print()
