@@ -82,6 +82,46 @@ types:
         size: size - 4
         type: c13_line_stream
 
+  symbol_table:
+    seq:
+      - id: items
+        type: symbol_table_item
+        repeat: eos
+
+  symbol_table_item:
+    seq:
+      - id: core
+        type: symbol_table_item_core
+      - id: aux_symbols
+        type: symbol_table_item_core
+        repeat: expr
+        repeat-expr: core.number_of_aux_symbols
+
+  symbol_table_item_core:
+    seq:
+      - id: name
+        size: 8
+        doc: The name of the symbol, represented by a union of three structures. An array of 8 bytes is used if the name is not more than 8 bytes long.
+      - id: value
+        type: u4
+        doc: The value that is associated with the symbol. The interpretation of this field depends on SectionNumber and StorageClass. A typical meaning is the relocatable address.
+      - id: section_number
+        type: s2
+        doc: The signed integer that identifies the section, using a one-based index into the section table. Some values have special meaning, as defined in section 5.4.2, "Section Number Values."
+      - id: type
+        type: u2
+        doc: A number that represents type. Microsoft tools set this field to 0x20 (function) or 0x0 (not a function). For more information, see Type Representation.
+      - id: storage_class
+        type: u1
+        doc: A number that represents type. Microsoft tools set this field to 0x20 (function) or 0x0 (not a function). For more information, see Type Representation.
+      - id: number_of_aux_symbols
+        type: u1
+        doc: The number of auxiliary symbol table entries that follow this record.
+      - id: aux
+        if: number_of_aux_symbols != 0
+        size: 0x12 * number_of_aux_symbols
+
+
 enums:
   machine:
     0x014c: image_file_machine_i386

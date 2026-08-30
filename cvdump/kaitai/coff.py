@@ -141,4 +141,79 @@ class Coff(KaitaiStruct):
             pass
 
 
+    class SymbolTable(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Coff.SymbolTable, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.items = []
+            i = 0
+            while not self._io.is_eof():
+                self.items.append(Coff.SymbolTableItem(self._io, self, self._root))
+                i += 1
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.items)):
+                pass
+                self.items[i]._fetch_instances()
+
+
+
+    class SymbolTableItem(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Coff.SymbolTableItem, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.core = Coff.SymbolTableItemCore(self._io, self, self._root)
+            self.aux_symbols = []
+            for i in range(self.core.number_of_aux_symbols):
+                self.aux_symbols.append(Coff.SymbolTableItemCore(self._io, self, self._root))
+
+
+
+        def _fetch_instances(self):
+            pass
+            self.core._fetch_instances()
+            for i in range(len(self.aux_symbols)):
+                pass
+                self.aux_symbols[i]._fetch_instances()
+
+
+
+    class SymbolTableItemCore(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Coff.SymbolTableItemCore, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.name = self._io.read_bytes(8)
+            self.value = self._io.read_u4le()
+            self.section_number = self._io.read_s2le()
+            self.type = self._io.read_u2le()
+            self.storage_class = self._io.read_u1()
+            self.number_of_aux_symbols = self._io.read_u1()
+            if self.number_of_aux_symbols != 0:
+                pass
+                self.aux = self._io.read_bytes(18 * self.number_of_aux_symbols)
+
+
+
+        def _fetch_instances(self):
+            pass
+            if self.number_of_aux_symbols != 0:
+                pass
+
+
+
 

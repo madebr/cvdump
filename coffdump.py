@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
 import argparse
+import binascii
 import datetime
 import io
 import pathlib
 import struct
+import textwrap
 
 import cvdump.kaitai.coff
 import cvdump.kaitai.c13_line_stream
+from cvdump import kaitai
 from cvdump.kaitai.c13_line_stream import C13LineStream
 import cvdump.kaitai.tpi_stream
 import cvdump.pe_coff
@@ -52,12 +55,13 @@ def main():
         print(f"Size of optional header: 0x{coff.header.size_of_optional_header:04x}")
         print(f"        Characteristics: {cvdump.pe_coff.PeCoffCharacteristic(coff.header.characteristics)} (0x{coff.header.characteristics:04x})")
 
-        string_table = None
+        names_table = None
 
-        for section_i, section_header in enumerate(coff.section_headers):
+        for section_i, section_header in enumerate(coff.section_headers, 1):
             print()
             print(f"- Section {section_i}:")
-            print(f"                    name: {section_header.name.decode('ascii')}")
+            section_name = section_header.name.rstrip(b"\x00").decode("ascii")
+            print(f"                    name: {section_name}")
             print(f"            virtual size: 0x{section_header.virtual_size:x}")
             print(f"         virtual address: 0x{section_header.virtual_address:x}")
             print(f"        size of raw data: 0x{section_header.size_of_raw_data:x}")
@@ -70,6 +74,7 @@ def main():
 
             DIRECTIVE_CHARACTERISTICS = cvdump.pe_coff.PeCoffSectionFlags.IMAGE_SCN_LNK_INFO | cvdump.pe_coff.PeCoffSectionFlags.IMAGE_SCN_LNK_REMOVE
             CODE_CHARACTERISTICS = cvdump.pe_coff.PeCoffSectionFlags.IMAGE_SCN_MEM_READ | cvdump.pe_coff.PeCoffSectionFlags.IMAGE_SCN_MEM_EXECUTE | cvdump.pe_coff.PeCoffSectionFlags.IMAGE_SCN_CNT_CODE
+            DATA_CHARACTERISTICS = cvdump.pe_coff.PeCoffSectionFlags.IMAGE_SCN_CNT_INITIALIZED_DATA
             coff_file.seek(section_header.pointer_to_raw_data)
             section_raw_data = coff_file.read(section_header.size_of_raw_data)
             if section_header.name == b".drectve" and section_header.characteristics & DIRECTIVE_CHARACTERISTICS == DIRECTIVE_CHARACTERISTICS:
@@ -85,13 +90,13 @@ def main():
                     for subsection in debug_s_things.c13_stream.subsections:
                         match subsection.header.type:
                             case C13LineStream.DebugSSubsectionType.debug_s_stringtable:
-                                assert string_table is None
-                                string_table = cvdump.names.StringTable.from_bytes(subsection.contents.data)
+                                assert names_table is None
+                                names_table = cvdump.names.StringTable.from_bytes(subsection.contents.data)
                             case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
                                 assert not checksums
                                 for cksum in subsection.contents.checksums:
                                     checksums[cksum.pos] = cksum
-                    assert string_table is not None
+                    assert names_table is not None
                     assert checksums
                     for subsection in debug_s_things.c13_stream.subsections:
                         match subsection.header.type:
@@ -105,7 +110,7 @@ def main():
                                 cvdump.dump_c13.dump_framedatas(subsection.contents)
                             case C13LineStream.DebugSSubsectionType.debug_s_lines:
                                 print("** LINES")
-                                cvdump.dump_c13.dump_lines(subsection.contents, string_table=string_table, checksums=checksums)
+                                cvdump.dump_c13.dump_lines(subsection.contents, string_table=names_table, checksums=checksums)
                             case _:
                                 raise ValueError(subsection.header.type, subsection.header.type.name.upper())
 
@@ -119,9 +124,14 @@ def main():
                     bs = io.BytesIO(debug_t_data)
                     bs.seek(4)
                     tpi_records = cvdump.kaitai.tpi_stream.TpiStream.Records(kaitaistruct.KaitaiStream(bs))
-                    cvdump.dump_tpi.dump_type_stream(tpi_records=tpi_records.records, ti_min=0, names_stream=string_table)
+                    cvdump.dump_tpi.dump_type_stream(tpi_records=tpi_records.records, ti_min=0, names_stream=names_table)
                 else:
                     raise ValueError(f"Unsupported .debug$T signature: 0x{debug_t_signature:X}")
+            elif section_header.name in (b".data\x00\x00\x00", b".rdata\x00\x00") and section_header.characteristics & DATA_CHARACTERISTICS == DATA_CHARACTERISTICS:
+                coff_file.seek(section_header.pointer_to_raw_data)
+                data = coff_file.read(section_header.size_of_raw_data)
+                print(f"data = ", end="")
+                print("\n   ".join(textwrap.wrap(binascii.b2a_hex(data).decode())))
             elif section_header.name == b".text\x00\x00\x00" and section_header.characteristics & CODE_CHARACTERISTICS == CODE_CHARACTERISTICS:
                 coff_file.seek(section_header.pointer_to_raw_data)
                 text_data = coff_file.read(section_header.size_of_raw_data)
@@ -133,13 +143,85 @@ def main():
                     # insn: capstone.CsInsn
                     print(f"0x{insn.address:08x}:\t{insn.mnemonic}\t{insn.op_str}")
             else:
-                raise ValueError
+                raise ValueError(section_header.name)
 
-    if string_table is not None:
+        if names_table is not None:
+            print()
+            print("Names table:")
+            for k, v in names_table.offset_to_name.items():
+                print(f"{k:4}: {v}")
+
+        coff_file.seek(coff.header.pointer_to_symbol_table + 0x12 * coff.header.number_of_symbols)
+        string_table_bytes = coff_file.read()
+        def get_name_from_string_table(offset: int) -> str:
+            pos_end = string_table_bytes.find(0, offset)
+            if pos_end == -1:
+                name = string_table_bytes[offset:]
+            else:
+                name = string_table_bytes[offset:pos_end]
+            return name.decode("ascii")
+        
+        def get_symbol_name(raw_name: bytes) -> str:
+            magic, name_offset = struct.unpack("<II", raw_name)
+            if magic == 0:
+                name = get_name_from_string_table(offset=name_offset)
+            else:
+                name = raw_name.rstrip(b"\x00").decode()
+            return name
+
+        coff_file.seek(coff.header.pointer_to_symbol_table)
+        symbol_table_raw_table = coff_file.read(0x12 * coff.header.number_of_symbols)
+        symbol_table = cvdump.kaitai.coff.Coff.SymbolTable(kaitaistruct.KaitaiStream(io.BytesIO(symbol_table_raw_table)))
+
+        def get_section_number_name(v: int) -> str:
+            match v:
+                case 0: 
+                    return "IMAGE_SYM_UNDEFINED"
+                case -1:
+                    return "IMAGE_SYM_ABSOLUTE"
+                case -2:
+                    return "IMAGE_SYM_DEBUG "
+            return str(v)
+            
+        def get_symbol_type_representation(type_value: int) -> str:
+            match type_value:
+                case 0x00:
+                    return "NOT_A_FUNCTION"
+                case 0x20:
+                    return "FUNCTION"
+            try:
+                base_type = type_value & 0xff
+                complex_type = type_value >> 8
+                base_name = cvdump.pe_coff.CoffSymbolBaseType(base_type).name
+                complex_name = cvdump.pe_coff.CoffSymbolComplexType(complex_type).name
+                return f"{base_name}/{complex_name}"
+            except ValueError:
+                return "???"
+        def get_symbol_storage_class_description(v: int) -> str:
+            try:
+                return cvdump.pe_coff.CoffSymbolStorageClass(v).name
+            except ValueError:
+                return "???"
+
         print()
-        print("String table:")
-        for k, v in string_table.offset_to_name.items():
-            print(f"{k:4}: {v}")
+        print("** COFF Symbol table")
+        print()
+        for item in symbol_table.items:
+            name = get_symbol_name(item.core.name)
+            print(f"- name: '{name}'")
+            print(f"  value: 0x{item.core.value:08x}")
+            print(f"  section: {get_section_number_name(item.core.section_number)}")
+            print(f"  type: {get_symbol_type_representation(item.core.type)} (0x{item.core.type:04x})")
+            print(f"  storage class: {get_symbol_storage_class_description(item.core.storage_class)} (0x{item.core.storage_class:02x})")
+            if item.aux_symbols:
+                print("  Auxiliary symbols:")
+                for aux in item.aux_symbols:
+                    aux_name = get_symbol_name(aux.name)
+                    print(f"  - name: '{aux_name}'")
+                    print(f"    value: 0x{aux.value:08x}")
+                    print(f"    section: {get_section_number_name(aux.section_number)}")
+                    print(f"    type: {get_symbol_type_representation(aux.type)} (0x{aux.type:04x})")
+                    print(f"    storage class: {get_symbol_storage_class_description(aux.storage_class)} (0x{aux.storage_class:02x})")
 
 if __name__ == "__main__":
     raise SystemExit(main())
