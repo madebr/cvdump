@@ -4,47 +4,12 @@
 import kaitaistruct
 from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 from cvdump.kaitai import c13_line_stream
-from enum import IntEnum
 
 
 if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 11):
     raise Exception("Incompatible Kaitai Struct Python API: 0.11 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class Coff(KaitaiStruct):
-
-    class Machine(IntEnum):
-        image_file_machine_i386 = 332
-        image_file_machine_r3000 = 354
-        image_file_machine_r4000 = 358
-        image_file_machine_r10000 = 360
-        image_file_machine_wcemipsv2 = 361
-        image_file_machine_alpha = 388
-        image_file_machine_sh3 = 418
-        image_file_machine_sh3dsp = 419
-        image_file_machine_sh3e = 420
-        image_file_machine_sh4 = 422
-        image_file_machine_sh5 = 424
-        image_file_machine_arm = 448
-        image_file_machine_thumb = 450
-        image_file_machine_armv7 = 452
-        image_file_machine_am33 = 467
-        image_file_machine_powerpc = 496
-        image_file_machine_powerpcfp = 497
-        image_file_machine_ia64 = 512
-        image_file_machine_mips16 = 614
-        image_file_machine_alpha64 = 644
-        image_file_machine_mipsfpu = 870
-        image_file_machine_mipsfpu16 = 1126
-        image_file_machine_tricore = 1312
-        image_file_machine_cef = 3311
-        image_file_machine_ebc = 3772
-        image_file_machine_riscv32 = 20530
-        image_file_machine_riscv64 = 20580
-        image_file_machine_riscv128 = 20776
-        image_file_machine_amd64 = 34404
-        image_file_machine_m32r = 36929
-        image_file_machine_arm64 = 43620
-        image_file_machine_cee = 49390
     def __init__(self, _io, _parent=None, _root=None):
         super(Coff, self).__init__(_io)
         self._parent = _parent
@@ -104,7 +69,7 @@ class Coff(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.machine = KaitaiStream.resolve_enum(Coff.Machine, self._io.read_u2le())
+            self.machine = self._io.read_u2le()
             self.number_of_sections = self._io.read_u2le()
             self.time_date_stamp = self._io.read_u4le()
             self.pointer_to_symbol_table = self._io.read_u4le()
@@ -115,6 +80,47 @@ class Coff(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class Relocation(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Coff.Relocation, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.virtual_address = self._io.read_u4le()
+            self.symbol_table_index = self._io.read_u4le()
+            self.type = self._io.read_u2le()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class Relocations(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Coff.Relocations, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.items = []
+            i = 0
+            while not self._io.is_eof():
+                self.items.append(Coff.Relocation(self._io, self, self._root))
+                i += 1
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.items)):
+                pass
+                self.items[i]._fetch_instances()
+
 
 
     class SectionHeader(KaitaiStruct):
@@ -173,47 +179,17 @@ class Coff(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.core = Coff.SymbolTableItemCore(self._io, self, self._root)
-            self.aux_symbols = []
-            for i in range(self.core.number_of_aux_symbols):
-                self.aux_symbols.append(Coff.SymbolTableItemCore(self._io, self, self._root))
-
-
-
-        def _fetch_instances(self):
-            pass
-            self.core._fetch_instances()
-            for i in range(len(self.aux_symbols)):
-                pass
-                self.aux_symbols[i]._fetch_instances()
-
-
-
-    class SymbolTableItemCore(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
-            super(Coff.SymbolTableItemCore, self).__init__(_io)
-            self._parent = _parent
-            self._root = _root
-            self._read()
-
-        def _read(self):
             self.name = self._io.read_bytes(8)
             self.value = self._io.read_u4le()
             self.section_number = self._io.read_s2le()
             self.type = self._io.read_u2le()
             self.storage_class = self._io.read_u1()
             self.number_of_aux_symbols = self._io.read_u1()
-            if self.number_of_aux_symbols != 0:
-                pass
-                self.aux = self._io.read_bytes(18 * self.number_of_aux_symbols)
-
+            self.aux_symbols = self._io.read_bytes(18 * self.number_of_aux_symbols)
 
 
         def _fetch_instances(self):
             pass
-            if self.number_of_aux_symbols != 0:
-                pass
-
 
 
 

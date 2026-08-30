@@ -15,7 +15,6 @@ types:
     seq:
       - id: machine
         type: u2
-        enum: machine
         doc: 'The number that identifies the type of target machine'
       - id: number_of_sections
         type: u2
@@ -90,15 +89,6 @@ types:
 
   symbol_table_item:
     seq:
-      - id: core
-        type: symbol_table_item_core
-      - id: aux_symbols
-        type: symbol_table_item_core
-        repeat: expr
-        repeat-expr: core.number_of_aux_symbols
-
-  symbol_table_item_core:
-    seq:
       - id: name
         size: 8
         doc: The name of the symbol, represented by a union of three structures. An array of 8 bytes is used if the name is not more than 8 bytes long.
@@ -117,42 +107,18 @@ types:
       - id: number_of_aux_symbols
         type: u1
         doc: The number of auxiliary symbol table entries that follow this record.
-      - id: aux
-        if: number_of_aux_symbols != 0
-        size: 0x12 * number_of_aux_symbols
-
-
-enums:
-  machine:
-    0x014c: image_file_machine_i386
-    0x0162: image_file_machine_r3000
-    0x0166: image_file_machine_r4000
-    0x0168: image_file_machine_r10000
-    0x0169: image_file_machine_wcemipsv2
-    0x0184: image_file_machine_alpha
-    0x01a2: image_file_machine_sh3
-    0x01a3: image_file_machine_sh3dsp
-    0x01a4: image_file_machine_sh3e
-    0x01a6: image_file_machine_sh4
-    0x01a8: image_file_machine_sh5
-    0x01c0: image_file_machine_arm
-    0x01c4: image_file_machine_armv7
-    0xaa64: image_file_machine_arm64
-    0x01c2: image_file_machine_thumb
-    0x01d3: image_file_machine_am33
-    0x01f0: image_file_machine_powerpc
-    0x01f1: image_file_machine_powerpcfp
-    0x0200: image_file_machine_ia64
-    0x0266: image_file_machine_mips16
-    0x0284: image_file_machine_alpha64
-    0x0366: image_file_machine_mipsfpu
-    0x0466: image_file_machine_mipsfpu16
-    0x0520: image_file_machine_tricore
-    0x0cef: image_file_machine_cef
-    0x0ebc: image_file_machine_ebc
-    0x5032: image_file_machine_riscv32
-    0x5064: image_file_machine_riscv64
-    0x5128: image_file_machine_riscv128
-    0x8664: image_file_machine_amd64
-    0x9041: image_file_machine_m32r
-    0xc0ee: image_file_machine_cee
+      - id: aux_symbols
+        size: 18 * number_of_aux_symbols
+  relocations:
+    seq:
+      - id: items
+        type: relocation
+        repeat: eos
+  relocation:
+    seq:
+      - id: virtual_address
+        type: u4
+      - id: symbol_table_index
+        type: u4
+      - id: type
+        type: u2

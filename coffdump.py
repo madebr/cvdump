@@ -10,7 +10,6 @@ import textwrap
 
 import cvdump.kaitai.coff
 import cvdump.kaitai.c13_line_stream
-from cvdump import kaitai
 from cvdump.kaitai.c13_line_stream import C13LineStream
 import cvdump.kaitai.tpi_stream
 import cvdump.pe_coff
@@ -36,7 +35,14 @@ def machine_to_capstone_arch(machine: cvdump.machine.Machine) -> tuple[int, int]
             return capstone.CS_ARCH_ARM64, capstone.CX_MODE_64
         case _:
             raise ValueError
-
+def relocation_type_to_str(t: int, machine: cvdump.machine.Machine) -> str:
+    match machine:
+        case cvdump.machine.Machine.IMAGE_FILE_MACHINE_I386:
+            return cvdump.pe_coff.CoffRelocationI386(t).name
+        case cvdump.machine.Machine.IMAGE_FILE_MACHINE_AMD64:
+            return cvdump.pe_coff.CoffRelocationAMD64(t).name
+        case _:
+            raise NotImplementedError(machine, t)
 
 
 def main():
@@ -46,16 +52,15 @@ def main():
 
     with args.coff.open("rb") as coff_file:
         coff = cvdump.kaitai.coff.Coff(kaitaistruct.KaitaiStream(coff_file))
+        machine = cvdump.machine.Machine(coff.header.machine)
 
-        print(f"                Machine: {coff.header.machine.name.upper()}")
+        print(f"                Machine: {machine.name}")
         print(f"     Number of sections: {coff.header.number_of_sections}")
         print(f"        Time date stamp: {datetime.datetime.fromtimestamp(coff.header.time_date_stamp).strftime('%Y-%m-%d %H:%M:%S')} (0x{coff.header.time_date_stamp:08x})")
         print(f"Pointer to Symbol Table: 0x{coff.header.pointer_to_symbol_table:08x}")
         print(f"      Number of symbols: {coff.header.number_of_symbols}")
         print(f"Size of optional header: 0x{coff.header.size_of_optional_header:04x}")
         print(f"        Characteristics: {cvdump.pe_coff.PeCoffCharacteristic(coff.header.characteristics)} (0x{coff.header.characteristics:04x})")
-
-        names_table = None
 
         for section_i, section_header in enumerate(coff.section_headers, 1):
             print()
@@ -86,6 +91,7 @@ def main():
                 print()
                 print(f"    Signature: {debug_s_things.signature}")
                 if hasattr(debug_s_things, "c13_stream"):
+                    names_table = None
                     checksums = {}
                     for subsection in debug_s_things.c13_stream.subsections:
                         match subsection.header.type:
@@ -145,6 +151,17 @@ def main():
             else:
                 raise ValueError(section_header.name)
 
+            if section_header.pointer_to_relocations == 0:
+                print(" Section does not contain relocations")
+            else:
+                coff_file.seek(section_header.pointer_to_relocations)
+                relocation_data = coff_file.read(section_header.number_of_relocations * 0xa)
+                relocations = cvdump.kaitai.coff.Coff.Relocations(kaitaistruct.KaitaiStream(io.BytesIO(relocation_data)))
+                print(" Relocations:")
+                for relocation in relocations.items:
+                    print(f"- address: 0x{relocation.virtual_address:08x}, symbol={relocation.symbol_table_index:6}, type={relocation_type_to_str(relocation.type, machine=machine)}")
+
+
         if names_table is not None:
             print()
             print("Names table:")
@@ -166,7 +183,11 @@ def main():
             if magic == 0:
                 name = get_name_from_string_table(offset=name_offset)
             else:
-                name = raw_name.rstrip(b"\x00").decode()
+                raw_name = raw_name.rstrip(b"\x00")
+                try:
+                    name = raw_name.decode("ascii")
+                except:
+                    name = str(raw_name)
             return name
 
         coff_file.seek(coff.header.pointer_to_symbol_table)
@@ -206,22 +227,21 @@ def main():
         print()
         print("** COFF Symbol table")
         print()
-        for item in symbol_table.items:
-            name = get_symbol_name(item.core.name)
-            print(f"- name: '{name}'")
-            print(f"  value: 0x{item.core.value:08x}")
-            print(f"  section: {get_section_number_name(item.core.section_number)}")
-            print(f"  type: {get_symbol_type_representation(item.core.type)} (0x{item.core.type:04x})")
-            print(f"  storage class: {get_symbol_storage_class_description(item.core.storage_class)} (0x{item.core.storage_class:02x})")
-            if item.aux_symbols:
-                print("  Auxiliary symbols:")
-                for aux in item.aux_symbols:
-                    aux_name = get_symbol_name(aux.name)
-                    print(f"  - name: '{aux_name}'")
-                    print(f"    value: 0x{aux.value:08x}")
-                    print(f"    section: {get_section_number_name(aux.section_number)}")
-                    print(f"    type: {get_symbol_type_representation(aux.type)} (0x{aux.type:04x})")
-                    print(f"    storage class: {get_symbol_storage_class_description(aux.storage_class)} (0x{aux.storage_class:02x})")
+        def dump_symbol_table_item(symbol: cvdump.kaitai.coff.Coff.SymbolTableItem, symbol_index: int, depth: int):
+            space = " "
+            indent = 2 * depth
+            name = get_symbol_name(symbol.name)
+            print(f"{symbol_index:>{indent}} name: '{name}'")
+            print(f"{space:>{indent}} value: 0x{symbol.value:08x}")
+            print(f"{space:>{indent}} section: {get_section_number_name(symbol.section_number)} ({symbol.section_number})")
+            print(f"{space:>{indent}} type: {get_symbol_type_representation(symbol.type)} (0x{symbol.type:04x})")
+            print(f"{space:>{indent}} storage class: {get_symbol_storage_class_description(symbol.storage_class)} (0x{symbol.storage_class:02x})")
+            print(f"{space:>{indent}} number of aux symbols: {symbol.number_of_aux_symbols}")
+            return symbol_index + 1 + symbol.number_of_aux_symbols
+
+        symbol_index = 0
+        for symbol in symbol_table.items:
+            symbol_index = dump_symbol_table_item(symbol, symbol_index=symbol_index, depth=2)
 
 if __name__ == "__main__":
     raise SystemExit(main())
