@@ -91,8 +91,9 @@ def main():
                 print()
                 print(f"    Signature: {debug_s_things.signature}")
                 if hasattr(debug_s_things, "symbols"):
-                    # Visual Studio 4.2
-                    assert debug_s_things.signature == 1
+                    # 1: Visual Studio 4.2
+                    # 2: Visual Studio 6
+                    assert debug_s_things.signature in (1, 2, )
                     print("** SYMBOLS")
                     for symbol in debug_s_things.symbols.entries:
                         cvdump.dump_symbol.dump_symbol(symbol=symbol, module_info=None, machine_config=machine_config)
@@ -140,8 +141,9 @@ def main():
                 coff_file.seek(section_header.pointer_to_raw_data)
                 debug_t_data = coff_file.read(section_header.size_of_raw_data)
                 debug_t_signature, = struct.unpack_from("<I", debug_t_data)
-                if debug_t_signature in (1, 4):
+                if debug_t_signature in (1, 2, 4):
                     # 1: Visual Studio 4.2
+                    # 2: Visual Studio 6
                     # 4: Visual Studio 2012
                     bs = io.BytesIO(debug_t_data)
                     bs.seek(4)

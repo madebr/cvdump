@@ -44,7 +44,7 @@ class Coff(KaitaiStruct):
 
         def _read(self):
             self.signature = self._io.read_u4le()
-            if not  ((self.signature == 1) or (self.signature == 4)) :
+            if not  ((self.signature == 1) or (self.signature == 2) or (self.signature == 4)) :
                 raise kaitaistruct.ValidationNotAnyOfError(self.signature, self._io, u"/types/debug_s/seq/0")
             if self.signature == 4:
                 pass
@@ -52,7 +52,7 @@ class Coff(KaitaiStruct):
                 _io__raw_c13_stream = KaitaiStream(BytesIO(self._raw_c13_stream))
                 self.c13_stream = c13_line_stream.C13LineStream(_io__raw_c13_stream)
 
-            if self.signature == 1:
+            if  ((self.signature == 1) or (self.signature == 2)) :
                 pass
                 self._raw_symbols = self._io.read_bytes(self.size - 4)
                 _io__raw_symbols = KaitaiStream(BytesIO(self._raw_symbols))
@@ -66,7 +66,7 @@ class Coff(KaitaiStruct):
                 pass
                 self.c13_stream._fetch_instances()
 
-            if self.signature == 1:
+            if  ((self.signature == 1) or (self.signature == 2)) :
                 pass
                 self.symbols._fetch_instances()
 

@@ -76,13 +76,15 @@ types:
       - id: signature
         type: u4
         valid:
-          any-of: [1, 4]
+          any-of: [1, 2, 4]
       - id: c13_stream
+        doc: '4: Visual Studio 2012'
         if: signature == 4
         size: size - 4
         type: c13_line_stream
       - id: symbols
-        if: signature == 1
+        doc: '1: Visual Studio 4.2, 2: Visual Studio 6'
+        if: signature == 1 or signature == 2
         size: size - 4
         type: cv_symbol_stream(0, false)
 
