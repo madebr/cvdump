@@ -112,7 +112,7 @@ def main():
                                 for cksum in subsection.contents.checksums:
                                     checksums[cksum.pos] = cksum
                     assert names_table is not None
-                    assert checksums
+                    # checksums are not available in Visual Studio 7
                     for subsection in debug_s_things.c13_stream.subsections:
                         match subsection.header.type:
                             case C13LineStream.DebugSSubsectionType.debug_s_stringtable | C13LineStream.DebugSSubsectionType.debug_s_filechksms:

@@ -280,59 +280,125 @@ class C13LineStream(KaitaiStruct):
 
         def _read(self):
             self.header = C13LineStream.SubsectionHeader(self._io, self, self._root)
-            _on = self.header.type
-            if _on == C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+            if self.limited:
                 pass
-                self._raw_contents = self._io.read_bytes(self.header.size)
-                _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
-                self.contents = C13LineStream.DebugFilechecksums(_io__raw_contents, self, self._root)
-            elif _on == C13LineStream.DebugSSubsectionType.debug_s_framedata:
+                _on = self.header.type
+                if _on == C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+                    pass
+                    self._raw_limited_contents = self._io.read_bytes(self.header.size)
+                    _io__raw_limited_contents = KaitaiStream(BytesIO(self._raw_limited_contents))
+                    self.limited_contents = C13LineStream.DebugFilechecksums(_io__raw_limited_contents, self, self._root)
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_framedata:
+                    pass
+                    self._raw_limited_contents = self._io.read_bytes(self.header.size)
+                    _io__raw_limited_contents = KaitaiStream(BytesIO(self._raw_limited_contents))
+                    self.limited_contents = C13LineStream.Framedatas(_io__raw_limited_contents, self, self._root)
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_lines:
+                    pass
+                    self._raw_limited_contents = self._io.read_bytes(self.header.size)
+                    _io__raw_limited_contents = KaitaiStream(BytesIO(self._raw_limited_contents))
+                    self.limited_contents = C13LineStream.DebugLines(self.header.size, _io__raw_limited_contents, self, self._root)
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_stringtable:
+                    pass
+                    self._raw_limited_contents = self._io.read_bytes(self.header.size)
+                    _io__raw_limited_contents = KaitaiStream(BytesIO(self._raw_limited_contents))
+                    self.limited_contents = C13LineStream.Stringtable(self.header.size, _io__raw_limited_contents, self, self._root)
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_symbols:
+                    pass
+                    self._raw_limited_contents = self._io.read_bytes(self.header.size)
+                    _io__raw_limited_contents = KaitaiStream(BytesIO(self._raw_limited_contents))
+                    self.limited_contents = cv_symbol_stream.CvSymbolStream(0, False, _io__raw_limited_contents)
+                else:
+                    pass
+                    self.limited_contents = self._io.read_bytes(self.header.size)
+
+            if (not (self.limited)):
                 pass
-                self._raw_contents = self._io.read_bytes(self.header.size)
-                _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
-                self.contents = C13LineStream.Framedatas(_io__raw_contents, self, self._root)
-            elif _on == C13LineStream.DebugSSubsectionType.debug_s_lines:
+                _on = self.header.type
+                if _on == C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+                    pass
+                    self.unlimited_contents = C13LineStream.DebugFilechecksums(self._io, self, self._root)
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_framedata:
+                    pass
+                    self.unlimited_contents = C13LineStream.Framedatas(self._io, self, self._root)
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_lines:
+                    pass
+                    self.unlimited_contents = C13LineStream.DebugLines(self.header.size, self._io, self, self._root)
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_stringtable:
+                    pass
+                    self.unlimited_contents = C13LineStream.Stringtable(self.header.size, self._io, self, self._root)
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_symbols:
+                    pass
+                    self.unlimited_contents = cv_symbol_stream.CvSymbolStream(0, False, self._io)
+
+            if self.limited:
                 pass
-                self._raw_contents = self._io.read_bytes(self.header.size)
-                _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
-                self.contents = C13LineStream.DebugLines(self.header.size, _io__raw_contents, self, self._root)
-            elif _on == C13LineStream.DebugSSubsectionType.debug_s_stringtable:
-                pass
-                self._raw_contents = self._io.read_bytes(self.header.size)
-                _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
-                self.contents = C13LineStream.Stringtable(self.header.size, _io__raw_contents, self, self._root)
-            elif _on == C13LineStream.DebugSSubsectionType.debug_s_symbols:
-                pass
-                self._raw_contents = self._io.read_bytes(self.header.size)
-                _io__raw_contents = KaitaiStream(BytesIO(self._raw_contents))
-                self.contents = cv_symbol_stream.CvSymbolStream(0, False, _io__raw_contents)
-            else:
-                pass
-                self.contents = self._io.read_bytes(self.header.size)
-            self.padding = self._io.read_bytes((4 - self._io.pos() % 4) % 4)
+                self.padding = self._io.read_bytes((4 - self._io.pos() % 4) % 4)
+
 
 
         def _fetch_instances(self):
             pass
             self.header._fetch_instances()
-            _on = self.header.type
-            if _on == C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+            if self.limited:
                 pass
-                self.contents._fetch_instances()
-            elif _on == C13LineStream.DebugSSubsectionType.debug_s_framedata:
+                _on = self.header.type
+                if _on == C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+                    pass
+                    self.limited_contents._fetch_instances()
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_framedata:
+                    pass
+                    self.limited_contents._fetch_instances()
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_lines:
+                    pass
+                    self.limited_contents._fetch_instances()
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_stringtable:
+                    pass
+                    self.limited_contents._fetch_instances()
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_symbols:
+                    pass
+                    self.limited_contents._fetch_instances()
+                else:
+                    pass
+
+            if (not (self.limited)):
                 pass
-                self.contents._fetch_instances()
-            elif _on == C13LineStream.DebugSSubsectionType.debug_s_lines:
+                _on = self.header.type
+                if _on == C13LineStream.DebugSSubsectionType.debug_s_filechksms:
+                    pass
+                    self.unlimited_contents._fetch_instances()
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_framedata:
+                    pass
+                    self.unlimited_contents._fetch_instances()
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_lines:
+                    pass
+                    self.unlimited_contents._fetch_instances()
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_stringtable:
+                    pass
+                    self.unlimited_contents._fetch_instances()
+                elif _on == C13LineStream.DebugSSubsectionType.debug_s_symbols:
+                    pass
+                    self.unlimited_contents._fetch_instances()
+
+            if self.limited:
                 pass
-                self.contents._fetch_instances()
-            elif _on == C13LineStream.DebugSSubsectionType.debug_s_stringtable:
-                pass
-                self.contents._fetch_instances()
-            elif _on == C13LineStream.DebugSSubsectionType.debug_s_symbols:
-                pass
-                self.contents._fetch_instances()
-            else:
-                pass
+
+
+        @property
+        def contents(self):
+            if hasattr(self, '_m_contents'):
+                return self._m_contents
+
+            self._m_contents = (self.limited_contents if self.limited else self.unlimited_contents)
+            return getattr(self, '_m_contents', None)
+
+        @property
+        def limited(self):
+            if hasattr(self, '_m_limited'):
+                return self._m_limited
+
+            self._m_limited = self.header.size != 0
+            return getattr(self, '_m_limited', None)
 
 
     class SubsectionHeader(KaitaiStruct):

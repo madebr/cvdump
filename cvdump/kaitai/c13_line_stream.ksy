@@ -12,7 +12,8 @@ types:
     seq:
       - id: header
         type: subsection_header
-      - id: contents
+      - id: limited_contents
+        if: limited
         size: header.size
         type:
           switch-on: header.type
@@ -22,8 +23,24 @@ types:
             'debug_s_subsection_type::debug_s_symbols': cv_symbol_stream(0, false)
             'debug_s_subsection_type::debug_s_framedata': framedatas
             'debug_s_subsection_type::debug_s_stringtable': stringtable(header.size)
+      - id: unlimited_contents
+        if: not limited
+        type:
+          switch-on: header.type
+          cases:
+            'debug_s_subsection_type::debug_s_filechksms': debug_filechecksums
+            'debug_s_subsection_type::debug_s_lines': debug_lines(header.size)
+            'debug_s_subsection_type::debug_s_symbols': cv_symbol_stream(0, false)
+            'debug_s_subsection_type::debug_s_framedata': framedatas
+            'debug_s_subsection_type::debug_s_stringtable': stringtable(header.size)
       - id: padding
+        if: limited
         size: (4 - (_io.pos % 4)) % 4
+    instances:
+      limited:
+        value: header.size != 0
+      contents:
+        value: 'limited ? limited_contents : unlimited_contents'
   subsection_header:
     seq:
       - id: type
