@@ -1265,11 +1265,10 @@ def dump_type_stream(tpi_records: typing.Iterable[TpiStream.Record], ti_min: int
             case TpiStream.Leaf.LeafType.lf_udt_mod_src_line:
                 print()
                 source_file = names_stream.get_text_at_offset(record.leaf.body.src)
-                raise ValueError
                 if source_file is None:
                     print("Error no name")
                 else:
-                    print(f"\ttype = 0x{record.leaf.body.type:x}, mod={record.leaf.body.imod}, source file = {source_file}, line = {record.leaf.body.line}")
+                    print(f"\ttype = 0x{record.leaf.body.type:x}, mod = {record.leaf.body.imod}, source file = {source_file}, line = {record.leaf.body.line}")
             case TpiStream.Leaf.LeafType.lf_string_id:
                 print()
                 print(f"\t{record.leaf.body.name}")

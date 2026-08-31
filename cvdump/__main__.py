@@ -562,7 +562,7 @@ def main():
 
         if args.dump_id:
             # FIXME: IPI stream is not available on small PDB's
-            dump_ipi(get_ipi(), get_name_offset_to_name())
+            dump_ipi(get_ipi(), process_namemap())
 
 if __name__ == "__main__":
     raise SystemExit(main())
