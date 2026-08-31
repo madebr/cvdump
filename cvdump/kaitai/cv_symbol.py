@@ -1290,6 +1290,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_gproc32_st:
                 pass
                 self.element = CvSymbol.Procsym32(False, self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_gthread32:
+                pass
+                self.element = CvSymbol.Threadsym32(self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_heapallocsite:
                 pass
                 self.element = CvSymbol.HeapAllocSite(self._io, self, self._root)
@@ -1335,6 +1338,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_lprocref_st:
                 pass
                 self.element = CvSymbol.Refsym(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_lthread32:
+                pass
+                self.element = CvSymbol.Threadsym32(self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_manconstant:
                 pass
                 self.element = CvSymbol.ConstSym(True, self._io, self, self._root)
@@ -1517,6 +1523,9 @@ class CvSymbol(KaitaiStruct):
             elif _on == CvSymbol.SymbolType.s_gproc32_st:
                 pass
                 self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_gthread32:
+                pass
+                self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_heapallocsite:
                 pass
                 self.element._fetch_instances()
@@ -1560,6 +1569,9 @@ class CvSymbol(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_lprocref_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_lthread32:
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_manconstant:
@@ -1743,6 +1755,26 @@ class CvSymbol(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class Threadsym32(KaitaiStruct):
+        """THREADSYM32 (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(CvSymbol.Threadsym32, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.type_index = self._io.read_u4le()
+            self.offset = self._io.read_u4le()
+            self.segment = self._io.read_u2le()
+            self.name = strz_or_pascal.StrzOrPascal(True, self._io)
+
+
+        def _fetch_instances(self):
+            pass
+            self.name._fetch_instances()
 
 
     class ThunkSym32(KaitaiStruct):

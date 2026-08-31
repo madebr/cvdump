@@ -530,8 +530,8 @@ types:
             'leaf::leaf_type::lf_stmember': lf_stmember
             'leaf::leaf_type::lf_stmember_st': lf_stmember
             'leaf::leaf_type::lf_index': lf_index
-#            'leaf::leaf_type::lf_vbclass': lf_vbclass
-#            'leaf::leaf_type::lf_ivbclass': lf_vbclass
+            'leaf::leaf_type::lf_vbclass': lf_vbclass
+            'leaf::leaf_type::lf_ivbclass': lf_vbclass
       - id: trailing_padding
         size: (4 - (_io.pos % 4)) % 4
 
@@ -619,6 +619,21 @@ types:
         type: u2
       - id: index
         type: u4
+  lf_vbclass:
+    doc: lfVBClass (cvinfo)
+    seq:
+      - id: attr
+        type: u2
+      - id: index
+        type: u4
+      - id: vbptr
+        type: u4
+      - id: vbpoff
+        type: numeric
+        doc: virtual base pointer offset from address point
+      - id: vbind
+        type: numeric
+        doc: virtual base offset from vbtable
 
   lf_enum_16t:
     doc: lfEnum_16t (cvinfo.h)

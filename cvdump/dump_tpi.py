@@ -964,24 +964,22 @@ def dump_type_stream(tpi_records: typing.Iterable[TpiStream.Record], ti_min: int
                                 print()
                                 print("***Warning, pad bytes are non-zero!")
                             print()
-                        # case TpiStream.Leaf.LeafType.lf_vbclass:
-                        #     print("LF_VBCLASS, ", end="")
-                        #     print_class_field_attributes(item.element.attr, False)
-                        #     # FIXME: add new line
-                        #     print(f"direct base type = {get_c7_type_name(item.element.index)}")
-                        #     print(f"\t\tvirtual base ptr = {get_c7_type_name(item.element.vbptr)}, ", end="")
-                        #     print(f"vboff = {get_numeric_string(item.element.vbpoff)}, ", end="")
-                        #     print(f"vbind = {get_numeric_string(item.element.vbind)}", end="")
-                        #     print()
-                        # case TpiStream.Leaf.LeafType.lf_ivbclass_16t:
-                        #     print("LF_IVBCLASS_16t, ", end="")
-                        #     print_class_field_attributes(item.element.attr, False)
-                        #     # FIXME: add new line
-                        #     print(f"indirect base type = {get_c7_type_name(item.element.index)}")
-                        #     print(f"\t\tvirtual base ptr = {get_c7_type_name(item.element.vbptr)}, ", end="")
-                        #     print(f"vboff = {get_numeric_string(item.element.vbpoff)}, ", end="")
-                        #     print(f"vbind = {get_numeric_string(item.element.vbind)}", end="")
-                        #     print()
+                        case TpiStream.Leaf.LeafType.lf_vbclass:
+                            print("LF_VBCLASS, ", end="")
+                            print_class_field_attributes(item.element.attr, False)
+                            print(f"direct base type = {get_c7_type_name(item.element.index)}")
+                            print(f"\t\tvirtual base ptr = {get_c7_type_name(item.element.vbptr)}, ", end="")
+                            print(f"vboff = {get_numeric_string(item.element.vbpoff)}, ", end="")
+                            print(f"vbind = {get_numeric_string(item.element.vbind)}", end="")
+                            print()
+                        case TpiStream.Leaf.LeafType.lf_ivbclass:
+                            print("LF_IVBCLASS, ", end="")
+                            print_class_field_attributes(item.element.attr, False)
+                            print(f"indirect base type = {get_c7_type_name(item.element.index)}")
+                            print(f"\t\tvirtual base ptr = {get_c7_type_name(item.element.vbptr)}, ", end="")
+                            print(f"vboff = {get_numeric_string(item.element.vbpoff)}, ", end="")
+                            print(f"vbind = {get_numeric_string(item.element.vbind)}", end="")
+                            print()
                         case _:
                             raise ValueError(item.type, repr(item.type))
             case TpiStream.Leaf.LeafType.lf_enum_16t:

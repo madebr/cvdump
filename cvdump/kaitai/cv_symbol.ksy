@@ -113,6 +113,8 @@ types:
             'symbol_type::s_gdata32_16t': datasym32_16t
             'symbol_type::s_armswitchtable': armswitchtable
             'symbol_type::s_unk1166': unk1166
+            'symbol_type::s_lthread32': threadsym32
+            'symbol_type::s_gthread32': threadsym32
 
             # object
             'symbol_type::s_gproc32_id': procsym32(true)
@@ -750,6 +752,17 @@ types:
         type: u2
       - id: count_entries
         type: u4
+  threadsym32:
+    doc: THREADSYM32 (cvinfo.h)
+    seq:
+      - id: type_index
+        type: u4
+      - id: offset
+        type: u4
+      - id: segment
+        type: u2
+      - id: name
+        type: strz_or_pascal(true)
 enums:
   symbol_type:
       0x0001: s_compile  # Compile flags symbol

@@ -2302,7 +2302,7 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
             if symbol.record.element.flags & 0xffc0:
                 print(f", ??? ({symbol.record.element.flags >> 6:0x04x}", end="")
             print(f", {symbol.record.element.name}")
-        case CvSymbol.SymbolType.s_gdata32 | CvSymbol.SymbolType.s_ldata32 | CvSymbol.SymbolType.s_gdata32_st | CvSymbol.SymbolType.s_ldata32_st:
+        case CvSymbol.SymbolType.s_gdata32 | CvSymbol.SymbolType.s_ldata32 | CvSymbol.SymbolType.s_gdata32_st | CvSymbol.SymbolType.s_ldata32_st | CvSymbol.SymbolType.s_lthread32 | CvSymbol.SymbolType.s_gthread32:
             print(f" [{symbol.record.element.segment:04X}:{symbol.record.element.offset:08X}], Type:", end="")
             print(f" {get_c7_type_name(symbol.record.element.type_index):>18}, {symbol.record.element.name.text}")
         case CvSymbol.SymbolType.s_gdata32_16t | CvSymbol.SymbolType.s_ldata32_16t:

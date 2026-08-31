@@ -148,6 +148,9 @@ class TpiStream(KaitaiStruct):
             elif _on == TpiStream.Leaf.LeafType.lf_index:
                 pass
                 self.element = TpiStream.LfIndex(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_ivbclass:
+                pass
+                self.element = TpiStream.LfVbclass(self._io, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_member:
                 pass
                 self.element = TpiStream.LfMember(self._io, self, self._root)
@@ -178,6 +181,9 @@ class TpiStream(KaitaiStruct):
             elif _on == TpiStream.Leaf.LeafType.lf_stmember_st:
                 pass
                 self.element = TpiStream.LfStmember(self._io, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_vbclass:
+                pass
+                self.element = TpiStream.LfVbclass(self._io, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_vfunctab:
                 pass
                 self.element = TpiStream.LfVfunctab(self._io, self, self._root)
@@ -202,6 +208,9 @@ class TpiStream(KaitaiStruct):
             elif _on == TpiStream.Leaf.LeafType.lf_index:
                 pass
                 self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_ivbclass:
+                pass
+                self.element._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_member:
                 pass
                 self.element._fetch_instances()
@@ -230,6 +239,9 @@ class TpiStream(KaitaiStruct):
                 pass
                 self.element._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_stmember_st:
+                pass
+                self.element._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_vbclass:
                 pass
                 self.element._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_vfunctab:
@@ -1831,6 +1843,28 @@ class TpiStream(KaitaiStruct):
             pass
             self.size._fetch_instances()
             self.name._fetch_instances()
+
+
+    class LfVbclass(KaitaiStruct):
+        """lfVBClass (cvinfo)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfVbclass, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.attr = self._io.read_u2le()
+            self.index = self._io.read_u4le()
+            self.vbptr = self._io.read_u4le()
+            self.vbpoff = numeric.Numeric(self._io)
+            self.vbind = numeric.Numeric(self._io)
+
+
+        def _fetch_instances(self):
+            pass
+            self.vbpoff._fetch_instances()
+            self.vbind._fetch_instances()
 
 
     class LfVbclass16t(KaitaiStruct):
