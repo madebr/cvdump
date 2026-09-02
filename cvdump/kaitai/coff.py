@@ -3,8 +3,8 @@
 
 import kaitaistruct
 from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
-from cvdump.kaitai import c13_line_stream
 from cvdump.kaitai import cv_symbol_stream
+from cvdump.kaitai import c13_line_stream
 
 
 if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 11):
@@ -69,6 +69,55 @@ class Coff(KaitaiStruct):
             if  ((self.signature == 1) or (self.signature == 2)) :
                 pass
                 self.symbols._fetch_instances()
+
+
+
+    class Edata(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Coff.Edata, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.reserved = self._io.read_u4le()
+            if not self.reserved == 0:
+                raise kaitaistruct.ValidationNotEqualError(0, self.reserved, self._io, u"/types/edata/seq/0")
+            self.time_date_stamp = self._io.read_u4le()
+            self.major_version = self._io.read_u2le()
+            self.minor_version = self._io.read_u2le()
+            self.name_rva = self._io.read_u4le()
+            self.ordinal_base = self._io.read_u4le()
+            self.number_of_functions = self._io.read_u4le()
+            self.number_of_names = self._io.read_u4le()
+            self.address_table = self._io.read_u4le()
+            self.name_pointer_table = self._io.read_u4le()
+            self.ordinal_table = self._io.read_u4le()
+            self.storage_address_table = []
+            for i in range(self.number_of_functions):
+                self.storage_address_table.append(self._io.read_u4le())
+
+            self.storage_name_pointer_table = []
+            for i in range(self.number_of_names):
+                self.storage_name_pointer_table.append(self._io.read_u4le())
+
+            self.storage_ordinal_table = []
+            for i in range(self.number_of_names):
+                self.storage_ordinal_table.append(self._io.read_u2le())
+
+            self.storage_names = self._io.read_bytes_full()
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.storage_address_table)):
+                pass
+
+            for i in range(len(self.storage_name_pointer_table)):
+                pass
+
+            for i in range(len(self.storage_ordinal_table)):
+                pass
 
 
 

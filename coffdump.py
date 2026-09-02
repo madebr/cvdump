@@ -111,7 +111,7 @@ def main():
                                 assert not checksums
                                 for cksum in subsection.contents.checksums:
                                     checksums[cksum.pos] = cksum
-                    assert names_table is not None
+                    # assert names_table is not None
                     # checksums are not available in Visual Studio 7
                     for subsection in debug_s_things.c13_stream.subsections:
                         match subsection.header.type:
@@ -166,6 +166,30 @@ def main():
                 for insn in md.disasm(text_data, 0x0):
                     # insn: capstone.CsInsn
                     print(f"0x{insn.address:08x}:\t{insn.mnemonic}\t{insn.op_str}")
+            elif section_header.name == b".edata\x00\x00":
+                coff_file.seek(section_header.pointer_to_raw_data)
+                data = coff_file.read(section_header.size_of_raw_data)
+                edata = cvdump.kaitai.coff.Coff.Edata(kaitaistruct.KaitaiStream(io.BytesIO(data)))
+
+                print()
+                print(f" Characteristics    = 0x{edata.reserved:08x}")
+                print(f"   TimeDateStamp    = {datetime.datetime.fromtimestamp(edata.time_date_stamp).strftime('%Y-%m-%d %H:%M:%S')} (0x{edata.time_date_stamp:08x})")
+                print(f"    MajorVersion    = {edata.major_version}")
+                print(f"    MinorVersion    = {edata.minor_version}")
+                print(f"        Name RVA    = {edata.name_rva}")
+                print(f"    Ordinal Base    = {edata.ordinal_base}")
+                print(f"Number of functions = {edata.number_of_functions}")
+                print(f"    Number of names = {edata.number_of_names}")
+                print(f"      Address table = {edata.address_table}")
+                print(f"        Names table = {edata.name_pointer_table}")
+                print(f" Name ordinal table = {edata.ordinal_table}")
+                print()
+                print(" Names buffer:")
+                names_table = cvdump.names.StringTable.from_bytes(edata.storage_names)
+                for i, (offset, name) in enumerate(names_table.offset_to_name.items()):
+                    print(f"{i:3} {offset:4}: '{name}'")
+                print()
+
             else:
                 raise ValueError(section_header.name)
 

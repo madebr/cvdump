@@ -87,6 +87,49 @@ types:
         if: signature == 1 or signature == 2
         size: size - 4
         type: cv_symbol_stream(0, false)
+  edata:
+    seq:
+      - id: reserved
+        type: u4
+        valid: 0x0
+      - id: time_date_stamp
+        type: u4
+      - id: major_version
+        type: u2
+      - id: minor_version
+        type: u2
+      - id: name_rva
+        type: u4
+      - id: ordinal_base
+        type: u4
+      - id: number_of_functions
+        type: u4
+      - id: number_of_names
+        type: u4
+      - id: address_table
+        type: u4
+      - id: name_pointer_table
+        type: u4
+      - id: ordinal_table
+        type: u4
+      - id: storage_address_table
+        doc: 'this is MSVC-specific, not part of the spec. Relocation fills this in'
+        type: u4
+        repeat: expr
+        repeat-expr: number_of_functions
+      - id: storage_name_pointer_table
+        doc: 'this is MSVC-specific, not part of the spec. Relocation fills this in'
+        type: u4
+        repeat: expr
+        repeat-expr: number_of_names
+      - id: storage_ordinal_table
+        doc: 'this is MSVC-specific, not part of the spec. Relocation fills this in'
+        type: u2
+        repeat: expr
+        repeat-expr: number_of_names
+      - id: storage_names
+        size-eos: true
+
 
   symbol_table:
     seq:
