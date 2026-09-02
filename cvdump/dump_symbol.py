@@ -2222,7 +2222,7 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
     print(f"{symbol_type_name}:", end="")
     match symbol.record.type:
         case CvSymbol.SymbolType.s_objname | CvSymbol.SymbolType.s_objname_st:
-            print(f" Signature: {symbol.record.element.signature:08x}, {symbol.record.element.name.text}")
+            print(f" Signature: {symbol.record.element.signature:08X}, {symbol.record.element.name.text}")
             print()
         case CvSymbol.SymbolType.s_compile:
             print()

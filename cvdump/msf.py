@@ -118,16 +118,17 @@ class MsfFile:
         self.stream = stream
         self.block_size = block_size
         self.stream_block_maps: list[list[int]] = []
-        self.stream_sizes = stream_sizes
+        self.stream_sizes = [s if s != 0xffffffff else 0 for s in stream_sizes]
         self.msf = msf
 
         stream_block_start = 0
-        for stream_size in stream_sizes:
+        for stream_i, stream_size in enumerate(self.stream_sizes):
             count_blocks = (stream_size + block_size - 1) // block_size
             stream_block_map = stream_blocks[stream_block_start:stream_block_start+count_blocks]
             self.stream_block_maps.append(stream_block_map)
             stream_block_start += count_blocks
 
+            assert len(self.stream_block_maps[-1]) * block_size >= stream_size, f"Stream {stream_i} has size={stream_size}, but {len(self.stream_block_maps[-1])} blocks"
     @property
     def count_streams(self) -> int:
         return len(self.stream_block_maps)
@@ -143,7 +144,7 @@ class MsfFile:
         if msf.is_big_msf:
             stream.seek(msf.big_superblock.block_map_address * msf.big_superblock.block_size)
             with kaitaistruct.KaitaiStream(stream) as kaitai_stream:
-                count_directory_pages = (msf.big_superblock.num_directory_bytes + msf.big_superblock.block_size) // msf.big_superblock.block_size
+                count_directory_pages = (msf.big_superblock.num_directory_bytes + msf.big_superblock.block_size - 1) // msf.big_superblock.block_size
                 big_msf_dir_pages = Msf.BigMsfStreamDirectoryPages(_io=kaitai_stream, count_items=count_directory_pages)
                 if len(big_msf_dir_pages.pages) != count_directory_pages:
                     raise ValueError(f"Expected {count_directory_pages} entries in directory, got {len(big_msf_dir_pages.pages)}")
