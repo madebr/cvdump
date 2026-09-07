@@ -545,14 +545,14 @@ def main():
                         end_name = dbi.source_info.buffer.find(b'\0', name_offset)
                         if end_name == -1:
                             end_name = None
-                        name = dbi.source_info.buffer[name_offset:end_name]
+                        name = dbi.source_info.buffer[name_offset:end_name].decode("ascii")
                     else:
                         # Pascal string
                         len_string = dbi.source_info.buffer[name_offset]
                         name = dbi.source_info.buffer[name_offset + 1:name_offset + 1 + len_string].decode("ascii")
                     # FIXME: add hash instead of None.
                     #        e.g. SHA_256: 991883893134C8ECBE6AF8335DF0781BFB779C11684B3367DEF514136241B866
-                    print(f"  {j:>4} {name.decode('ascii')} (HASH TBD)")
+                    print(f"  {j:>4} {name} (HASH TBD)")
                 if module_source_count:
                     print()
                 start_name_index += module_source_count
