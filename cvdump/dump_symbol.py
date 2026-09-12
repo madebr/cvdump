@@ -1,3 +1,5 @@
+import sys
+
 from cvdump.dump_tpi import get_c7_type_name, get_numeric_string
 from cvdump.kaitai.cv_symbol import CvSymbol
 from cvdump.kaitai.modi_stream import ModiStream
@@ -8,10 +10,14 @@ class MachineConfig:
     def __init__(self, machine: Machine | None=None):
         self._machine = machine
 
+    _XBOX360_PPC = (Machine.IMAGE_FILE_MACHINE_POWERPCBE, Machine.IMAGE_FILE_MACHINE_POWERPC)
     def set_machine(self, machine: Machine):
         if self._machine is not None:
             if self._machine != machine:
-                raise ValueError
+                if self.machine in self._XBOX360_PPC and machine in self._XBOX360_PPC:
+                    machine = Machine.IMAGE_FILE_MACHINE_POWERPCBE
+                else:
+                    raise ValueError
         self._machine = machine
 
     @property
@@ -230,8 +236,12 @@ def ProcessorToMachine(processor_id: int) -> Machine:
             return Machine.IMAGE_FILE_MACHINE_AMD64
         case CpuType.CV_CFL_ARM64 | CpuType.CV_CFL_ARM64X | CpuType.CV_CFL_ARM64EC:
             return Machine.IMAGE_FILE_MACHINE_ARM64
+        case CpuType.CV_CFL_PPC604:
+            return Machine.IMAGE_FILE_MACHINE_POWERPCBE  # Xbox 360
+        case CpuType.CV_CFL_PPCBE | CpuType.CV_CFL_PPC601:
+            return Machine.IMAGE_FILE_MACHINE_POWERPC  # Also used in Xbox 360
         case _:
-            raise ValueError
+            raise ValueError(processor_id)
 
 
 def GetAmbientDataType(fp_package_id: int) -> str:
@@ -315,6 +325,7 @@ MACHINE_TO_CPU: dict[Machine, CpuType] = {
     Machine.IMAGE_FILE_MACHINE_R10000: CpuType.CV_CFL_MIPS,
     Machine.IMAGE_FILE_MACHINE_POWERPC: CpuType.CV_CFL_PPC601,
     Machine.IMAGE_FILE_MACHINE_POWERPCFP: CpuType.CV_CFL_PPCFP,
+    Machine.IMAGE_FILE_MACHINE_POWERPCBE: CpuType.CV_CFL_PPC604,
     Machine.IMAGE_FILE_MACHINE_SH3: CpuType.CV_CFL_SH3,
     Machine.IMAGE_FILE_MACHINE_SH3DSP: CpuType.CV_CFL_SH3DSP,
     Machine.IMAGE_FILE_MACHINE_SH4: CpuType.CV_CFL_SH4,
@@ -658,7 +669,6 @@ class RegisterX86(enum.Enum):
     CV_REG_BND1 = 397
     CV_REG_BND2 = 398
     CV_REG_BND3 = 399
-
 
 class RegisterAMD64(enum.Enum):
     CV_REG_NONE       =   0
@@ -1441,6 +1451,178 @@ class RegisterARM64(enum.Enum):
     CV_ARM64_Q31    =  211
     CV_ARM64_FPSR   =  220
 
+
+class RegisterPPC(enum.Enum):
+    CV_PPC_NONE     =  0
+    CV_PPC_GPR0     =  1
+    CV_PPC_GPR1     =  2
+    CV_PPC_GPR2     =  3
+    CV_PPC_GPR3     =  4
+    CV_PPC_GPR4     =  5
+    CV_PPC_GPR5     =  6
+    CV_PPC_GPR6     =  7
+    CV_PPC_GPR7     =  8
+    CV_PPC_GPR8     =  9
+    CV_PPC_GPR9     = 10
+    CV_PPC_GPR10    = 11
+    CV_PPC_GPR11    = 12
+    CV_PPC_GPR12    = 13
+    CV_PPC_GPR13    = 14
+    CV_PPC_GPR14    = 15
+    CV_PPC_GPR15    = 16
+    CV_PPC_GPR16    = 17
+    CV_PPC_GPR17    = 18
+    CV_PPC_GPR18    = 19
+    CV_PPC_GPR19    = 20
+    CV_PPC_GPR20    = 21
+    CV_PPC_GPR21    = 22
+    CV_PPC_GPR22    = 23
+    CV_PPC_GPR23    = 24
+    CV_PPC_GPR24    = 25
+    CV_PPC_GPR25    = 26
+    CV_PPC_GPR26    = 27
+    CV_PPC_GPR27    = 28
+    CV_PPC_GPR28    = 29
+    CV_PPC_GPR29    = 30
+    CV_PPC_GPR30    = 31
+    CV_PPC_GPR31    = 32
+    CV_PPC_CR       = 33
+    CV_PPC_CR0      = 34
+    CV_PPC_CR1      = 35
+    CV_PPC_CR2      = 36
+    CV_PPC_CR3      = 37
+    CV_PPC_CR4      = 38
+    CV_PPC_CR5      = 39
+    CV_PPC_CR6      = 40
+    CV_PPC_CR7      = 41
+    CV_PPC_FPR0     = 42
+    CV_PPC_FPR1     = 43
+    CV_PPC_FPR2     = 44
+    CV_PPC_FPR3     = 45
+    CV_PPC_FPR4     = 46
+    CV_PPC_FPR5     = 47
+    CV_PPC_FPR6     = 48
+    CV_PPC_FPR7     = 49
+    CV_PPC_FPR8     = 50
+    CV_PPC_FPR9     = 51
+    CV_PPC_FPR10    = 52
+    CV_PPC_FPR11    = 53
+    CV_PPC_FPR12    = 54
+    CV_PPC_FPR13    = 55
+    CV_PPC_FPR14    = 56
+    CV_PPC_FPR15    = 57
+    CV_PPC_FPR16    = 58
+    CV_PPC_FPR17    = 59
+    CV_PPC_FPR18    = 60
+    CV_PPC_FPR19    = 61
+    CV_PPC_FPR20    = 62
+    CV_PPC_FPR21    = 63
+    CV_PPC_FPR22    = 64
+    CV_PPC_FPR23    = 65
+    CV_PPC_FPR24    = 66
+    CV_PPC_FPR25    = 67
+    CV_PPC_FPR26    = 68
+    CV_PPC_FPR27    = 69
+    CV_PPC_FPR28    = 70
+    CV_PPC_FPR29    = 71
+    CV_PPC_FPR30    = 72
+    CV_PPC_FPR31    = 73
+    CV_PPC_FPSCR    = 74
+    CV_PPC_MSR      = 75
+    CV_PPC_SR0      = 76
+    CV_PPC_SR1      = 77
+    CV_PPC_SR2      = 78
+    CV_PPC_SR3      = 79
+    CV_PPC_SR4      = 80
+    CV_PPC_SR5      = 81
+    CV_PPC_SR6      = 82
+    CV_PPC_SR7      = 83
+    CV_PPC_SR8      = 84
+    CV_PPC_SR9      = 85
+    CV_PPC_SR10     = 86
+    CV_PPC_SR11     = 87
+    CV_PPC_SR12     = 88
+    CV_PPC_SR13     = 89
+    CV_PPC_SR14     = 90
+    CV_PPC_SR15     = 91
+    CV_PPC_PC       = 99
+    CV_PPC_MQ       = 100
+    CV_PPC_XER      = 101
+    CV_PPC_RTCU     = 104
+    CV_PPC_RTCL     = 105
+    CV_PPC_LR       = 108
+    CV_PPC_CTR      = 109
+    CV_PPC_COMPARE  = 110
+    CV_PPC_COUNT    = 111
+    CV_PPC_DSISR    = 118
+    CV_PPC_DAR      = 119
+    CV_PPC_DEC      = 122
+    CV_PPC_SDR1     = 125
+    CV_PPC_SRR0     = 126
+    CV_PPC_SRR1     = 127
+    CV_PPC_SPRG0    = 372
+    CV_PPC_SPRG1    = 373
+    CV_PPC_SPRG2    = 374
+    CV_PPC_SPRG3    = 375
+    CV_PPC_ASR      = 280
+    CV_PPC_EAR      = 382
+    CV_PPC_PVR      = 287
+    CV_PPC_BAT0U    = 628
+    CV_PPC_BAT0L    = 629
+    CV_PPC_BAT1U    = 630
+    CV_PPC_BAT1L    = 631
+    CV_PPC_BAT2U    = 632
+    CV_PPC_BAT2L    = 633
+    CV_PPC_BAT3U    = 634
+    CV_PPC_BAT3L    = 635
+    CV_PPC_DBAT0U   = 636
+    CV_PPC_DBAT0L   = 637
+    CV_PPC_DBAT1U   = 638
+    CV_PPC_DBAT1L   = 639
+    CV_PPC_DBAT2U   = 640
+    CV_PPC_DBAT2L   = 641
+    CV_PPC_DBAT3U   = 642
+    CV_PPC_DBAT3L   = 643
+    CV_PPC_PMR0     = 1044
+    CV_PPC_PMR1     = 1045
+    CV_PPC_PMR2     = 1046
+    CV_PPC_PMR3     = 1047
+    CV_PPC_PMR4     = 1048
+    CV_PPC_PMR5     = 1049
+    CV_PPC_PMR6     = 1050
+    CV_PPC_PMR7     = 1051
+    CV_PPC_PMR8     = 1052
+    CV_PPC_PMR9     = 1053
+    CV_PPC_PMR10    = 1054
+    CV_PPC_PMR11    = 1055
+    CV_PPC_PMR12    = 1056
+    CV_PPC_PMR13    = 1057
+    CV_PPC_PMR14    = 1058
+    CV_PPC_PMR15    = 1059
+    CV_PPC_DMISS    = 1076
+    CV_PPC_DCMP     = 1077
+    CV_PPC_HASH1    = 1078
+    CV_PPC_HASH2    = 1079
+    CV_PPC_IMISS    = 1080
+    CV_PPC_ICMP     = 1081
+    CV_PPC_RPA      = 1082
+    CV_PPC_HID0     = 1108
+    CV_PPC_HID1     = 1109
+    CV_PPC_HID2     = 1110
+    CV_PPC_HID3     = 1111
+    CV_PPC_HID4     = 1112
+    CV_PPC_HID5     = 1113
+    CV_PPC_HID6     = 1114
+    CV_PPC_HID7     = 1115
+    CV_PPC_HID8     = 1116
+    CV_PPC_HID9     = 1117
+    CV_PPC_HID10    = 1118
+    CV_PPC_HID11    = 1119
+    CV_PPC_HID12    = 1120
+    CV_PPC_HID13    = 1121
+    CV_PPC_HID14    = 1122
+    CV_PPC_HID15    = 1123
+
 class RegisterCommon(enum.Enum):
     CV_ALLREG_ERR   =   30000
     CV_ALLREG_TEB   =   30001
@@ -2005,6 +2187,85 @@ AMD64_REG_TO_NAME: dict[RegisterAMD64, str] = {
     RegisterAMD64.CV_AMD64_R15D: "r15d",
 }
 
+PPC_REG_TO_NAME: dict[RegisterPPC, str] = {
+    RegisterPPC.CV_PPC_NONE: "None",
+    RegisterPPC.CV_PPC_GPR0: "r0",
+    RegisterPPC.CV_PPC_GPR1: "r1",
+    RegisterPPC.CV_PPC_GPR2: "r2",
+    RegisterPPC.CV_PPC_GPR3: "r3",
+    RegisterPPC.CV_PPC_GPR4: "r4",
+    RegisterPPC.CV_PPC_GPR5: "r5",
+    RegisterPPC.CV_PPC_GPR6: "r6",
+    RegisterPPC.CV_PPC_GPR7: "r7",
+    RegisterPPC.CV_PPC_GPR8: "r8",
+    RegisterPPC.CV_PPC_GPR9: "r9",
+    RegisterPPC.CV_PPC_GPR10: "r10",
+    RegisterPPC.CV_PPC_GPR11: "r11",
+    RegisterPPC.CV_PPC_GPR12: "r12",
+    RegisterPPC.CV_PPC_GPR13: "r13",
+    RegisterPPC.CV_PPC_GPR14: "r14",
+    RegisterPPC.CV_PPC_GPR15: "r15",
+    RegisterPPC.CV_PPC_GPR16: "r16",
+    RegisterPPC.CV_PPC_GPR17: "r17",
+    RegisterPPC.CV_PPC_GPR18: "r18",
+    RegisterPPC.CV_PPC_GPR19: "r19",
+    RegisterPPC.CV_PPC_GPR20: "r20",
+    RegisterPPC.CV_PPC_GPR21: "r21",
+    RegisterPPC.CV_PPC_GPR22: "r22",
+    RegisterPPC.CV_PPC_GPR23: "r23",
+    RegisterPPC.CV_PPC_GPR24: "r24",
+    RegisterPPC.CV_PPC_GPR25: "r25",
+    RegisterPPC.CV_PPC_GPR26: "r26",
+    RegisterPPC.CV_PPC_GPR27: "r27",
+    RegisterPPC.CV_PPC_GPR28: "r28",
+    RegisterPPC.CV_PPC_GPR29: "r29",
+    RegisterPPC.CV_PPC_GPR30: "r30",
+    RegisterPPC.CV_PPC_GPR31: "r31",
+    RegisterPPC.CV_PPC_CR: "cr",
+    RegisterPPC.CV_PPC_CR0: "cr0",
+    RegisterPPC.CV_PPC_CR1: "cr1",
+    RegisterPPC.CV_PPC_CR2: "cr2",
+    RegisterPPC.CV_PPC_CR3: "cr3",
+    RegisterPPC.CV_PPC_CR4: "cr4",
+    RegisterPPC.CV_PPC_CR5: "cr5",
+    RegisterPPC.CV_PPC_CR6: "cr6",
+    RegisterPPC.CV_PPC_CR7: "cr7",
+    RegisterPPC.CV_PPC_FPR0: "f0",
+    RegisterPPC.CV_PPC_FPR1: "f1",
+    RegisterPPC.CV_PPC_FPR2: "f2",
+    RegisterPPC.CV_PPC_FPR3: "f3",
+    RegisterPPC.CV_PPC_FPR4: "f4",
+    RegisterPPC.CV_PPC_FPR5: "f5",
+    RegisterPPC.CV_PPC_FPR6: "f6",
+    RegisterPPC.CV_PPC_FPR7: "f7",
+    RegisterPPC.CV_PPC_FPR8: "f8",
+    RegisterPPC.CV_PPC_FPR9: "f9",
+    RegisterPPC.CV_PPC_FPR10: "f10",
+    RegisterPPC.CV_PPC_FPR11: "f11",
+    RegisterPPC.CV_PPC_FPR12: "f12",
+    RegisterPPC.CV_PPC_FPR13: "f13",
+    RegisterPPC.CV_PPC_FPR14: "f14",
+    RegisterPPC.CV_PPC_FPR15: "f15",
+    RegisterPPC.CV_PPC_FPR16: "f16",
+    RegisterPPC.CV_PPC_FPR17: "f17",
+    RegisterPPC.CV_PPC_FPR18: "f18",
+    RegisterPPC.CV_PPC_FPR19: "f19",
+    RegisterPPC.CV_PPC_FPR20: "f20",
+    RegisterPPC.CV_PPC_FPR21: "f21",
+    RegisterPPC.CV_PPC_FPR22: "f22",
+    RegisterPPC.CV_PPC_FPR23: "f23",
+    RegisterPPC.CV_PPC_FPR24: "f24",
+    RegisterPPC.CV_PPC_FPR25: "f25",
+    RegisterPPC.CV_PPC_FPR26: "f26",
+    RegisterPPC.CV_PPC_FPR27: "f27",
+    RegisterPPC.CV_PPC_FPR28: "f28",
+    RegisterPPC.CV_PPC_FPR29: "f29",
+    RegisterPPC.CV_PPC_FPR30: "f30",
+    RegisterPPC.CV_PPC_FPR31: "f31",
+    RegisterPPC.CV_PPC_FPSCR: "Fpscr",
+    RegisterPPC.CV_PPC_MSR: "Msr",
+}
+
 def get_c7_register_name(register: int, machine: Machine):
     cpu = MACHINE_TO_CPU[machine]
     try:
@@ -2019,7 +2280,8 @@ def get_c7_register_name(register: int, machine: Machine):
             case CpuType.CV_CFL_M68000 | CpuType.CV_CFL_M68010 | CpuType.CV_CFL_M68020 | CpuType.CV_CFL_M68030 | CpuType.CV_CFL_M68040:
                 reg_lookup = REGISTER_NAMES_MOTOROLA
             case CpuType.CV_CFL_PPC601 | CpuType.CV_CFL_PPC603 | CpuType.CV_CFL_PPC604 | CpuType.CV_CFL_PPC620 | CpuType.CV_CFL_PPCFP | CpuType.CV_CFL_PPCBE:
-                reg_lookup = REGISTER_NAMES_PPC
+                cv_reg = RegisterPPC(register)
+                reg_lookup = PPC_REG_TO_NAME
             case CpuType.CV_CFL_SH3 | CpuType.CV_CFL_SH3E | CpuType.CV_CFL_SH3DSP | CpuType.CV_CFL_SH4:
                 reg_lookup = REGISTER_NAMES_SH
             case CpuType.CV_CFL_ARM3 | CpuType.CV_CFL_ARM4 | CpuType.CV_CFL_ARM4T | CpuType.CV_CFL_ARM5 | CpuType.CV_CFL_ARM5T | CpuType.CV_CFL_ARM7 | CpuType.CV_CFL_THUMB | CpuType.CV_CFL_ARMNT:
@@ -2067,9 +2329,13 @@ def get_frame_register_name(frame_register: int, machine_config: MachineConfig) 
         case Machine.IMAGE_FILE_MACHINE_ARM64:
             # register = MACHINE_ARM64_FRAME_REGISTERS[frame_register]
             # return get_c7_register_name(register=register.value, machine=machine_config.machine)
+            print("get_frame_register_name: IMAGE_FILE_MACHINE_ARM64 unsupported", file=sys.stderr)
+            return f"???(0x{frame_register:X})"
+        case Machine.IMAGE_FILE_MACHINE_POWERPCBE:
+            print("get_frame_register_name: IMAGE_FILE_MACHINE_POWERPCBE unsupported", file=sys.stderr)
             return f"???(0x{frame_register:X})"
         case _:
-            raise ValueError
+            raise ValueError(f"{machine_config.machine=} frame_register=0x{frame_register:04x}")
 
 class BinaryAnnotationOpcode(enum.IntEnum):
     BA_OP_Invalid = 0
@@ -2528,6 +2794,12 @@ def dump_symbol(symbol: ModiStream.Symbol, machine_config: MachineConfig, module
                 print(f"unknown(0x{symbol.record.element.switch_type:X})")
         case CvSymbol.SymbolType.s_proc_id_end:
             print()
+        case CvSymbol.SymbolType.s_annotation:
+            print(f"[{symbol.record.element.seg:04X}:{symbol.record.element.off:08X}]")
+            for i, annotation in enumerate(symbol.record.element.annotations, 1):
+                print(f"{i:5}: \"{annotation}\"")
+        case CvSymbol.SymbolType.s_annotationref:
+            print(f"0x{symbol.record.element.sum_name:08X}: ({symbol.record.element.imod:4}, {symbol.record.element.ib_sym:08X}) {symbol.record.element.name}")
         case CvSymbol.SymbolType.s_end:
             print()
             print()

@@ -10,6 +10,7 @@ import enum
 import uuid
 import zipfile
 
+import cvdump.dump_c13
 from cvdump.dump_tpi import dump_ipi, dump_tpi
 from cvdump.dump_symbol import dump_symbol, MachineConfig
 from cvdump.machine import Machine
@@ -388,31 +389,15 @@ def main():
                                 case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
                                     pass
                                 case C13LineStream.DebugSSubsectionType.debug_s_lines:
-                                    cvdump.dump_c13.dump_lines(subsection.contents)
-                                    for table_i, table in enumerate(subsection.contents.tables.items):
-                                        try:
-                                            cksum = checksums[table.fileid]
-                                        except KeyError:
-                                            raise
-                                        name_offset_to_name = get_name_offset_to_name()
-                                        filename = name_offset_to_name[cksum.name_index]
-                                        start = subsection.contents.off_con if table_i == 0 else (subsection.contents.off_con + table.lines[0].offset)
-                                        end = (subsection.contents.off_con + subsection.contents.count_con) if table_i + 1 == len(subsection.contents.tables.items) else (subsection.contents.off_con + subsection.contents.tables.items[table_i + 1].lines[0].offset)
-                                        print()
-                                        print(f"  {filename} ({get_hash_name(cksum.hash_type)}: {binascii.b2a_hex(cksum.hash).decode().upper()}), {subsection.contents.seg_con:04X}:{start:08X}-{end:08X}, line/addr pairs = {table.count_lines}")
-                                        print()
-                                        for i, line_item in enumerate(table.lines):
-                                            if line_item.line_number_start in (0xfeefee, 0xf00f00):
-                                                print(f"  {line_item.line_number_start:x} {subsection.contents.off_con+line_item.offset:08X}", end="")
-                                            else:
-                                                print(f"  {line_item.line_number_start:5} {subsection.contents.off_con+line_item.offset:08X}", end="")
-                                            if i % 4 == 3 or i == len(table.lines) - 1:
-                                                print()
+                                    cvdump.dump_c13.dump_lines(subsection.contents, string_table=process_namemap(), checksums=checksums)
                                 case C13LineStream.DebugSSubsectionType.debug_s_inlineelines:
                                     # FIXME: display for -inll
                                     pass
+                                case C13LineStream.DebugSSubsectionType.debug_s_stringtable:
+                                    # FIXME: encountered in Xbox 360 PDB, used for lines table?
+                                    pass
                                 case _:
-                                    raise ValueError
+                                    raise ValueError(subsection.header.type)
                     elif module_stream.c11_line_size:
                         bs = io.BytesIO(module_stream.c11_line_info)
                         ks = kaitaistruct.KaitaiStream(bs)

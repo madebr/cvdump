@@ -256,6 +256,31 @@ class CvSymbol(KaitaiStruct):
             pass
 
 
+    class Annotationsym(KaitaiStruct):
+        """ANNOTATIONSYM (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(CvSymbol.Annotationsym, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.off = self._io.read_u4le()
+            self.seg = self._io.read_u2le()
+            self.csz = self._io.read_u2le()
+            self.annotations = []
+            for i in range(self.csz):
+                self.annotations.append((self._io.read_bytes_term(0, False, True, True)).decode(u"ASCII"))
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.annotations)):
+                pass
+
+
+
     class Armswitchtable(KaitaiStruct):
         """ARMSWITCHTABLE (cvinfo.h)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -1176,7 +1201,13 @@ class CvSymbol(KaitaiStruct):
         def _read(self):
             self.type = KaitaiStream.resolve_enum(CvSymbol.SymbolType, self._io.read_u2le())
             _on = self.type
-            if _on == CvSymbol.SymbolType.s_armswitchtable:
+            if _on == CvSymbol.SymbolType.s_annotation:
+                pass
+                self.element = CvSymbol.Annotationsym(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_annotationref:
+                pass
+                self.element = CvSymbol.Refsym2(self._io, self, self._root)
+            elif _on == CvSymbol.SymbolType.s_armswitchtable:
                 pass
                 self.element = CvSymbol.Armswitchtable(self._io, self, self._root)
             elif _on == CvSymbol.SymbolType.s_block32:
@@ -1409,7 +1440,13 @@ class CvSymbol(KaitaiStruct):
         def _fetch_instances(self):
             pass
             _on = self.type
-            if _on == CvSymbol.SymbolType.s_armswitchtable:
+            if _on == CvSymbol.SymbolType.s_annotation:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_annotationref:
+                pass
+                self.element._fetch_instances()
+            elif _on == CvSymbol.SymbolType.s_armswitchtable:
                 pass
                 self.element._fetch_instances()
             elif _on == CvSymbol.SymbolType.s_block32:

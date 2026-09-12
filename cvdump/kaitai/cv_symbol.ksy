@@ -116,6 +116,9 @@ types:
             'symbol_type::s_lthread32': threadsym32
             'symbol_type::s_gthread32': threadsym32
 
+            'symbol_type::s_annotation': annotationsym
+            'symbol_type::s_annotationref': refsym2
+
             # object
             'symbol_type::s_gproc32_id': procsym32(true)
             'symbol_type::s_proc_id_end': empty
@@ -763,6 +766,20 @@ types:
         type: u2
       - id: name
         type: strz_or_pascal(true)
+  annotationsym:
+    doc: ANNOTATIONSYM (cvinfo.h)
+    seq:
+      - id: 'off'
+        type: u4
+      - id: seg
+        type: u2
+      - id: csz
+        type: u2
+      - id: annotations
+        type: strz
+        encoding: ascii
+        repeat: expr
+        repeat-expr: csz
 enums:
   symbol_type:
       0x0001: s_compile  # Compile flags symbol
