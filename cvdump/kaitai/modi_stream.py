@@ -3,21 +3,22 @@
 
 import kaitaistruct
 from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
-from cvdump.kaitai import c13_line_stream
 from cvdump.kaitai import cv_symbol
+from cvdump.kaitai import c13_line_stream
 
 
 if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 11):
     raise Exception("Incompatible Kaitai Struct Python API: 0.11 or later is required, but you have %s" % (kaitaistruct.__version__))
 
 class ModiStream(KaitaiStruct):
-    def __init__(self, symbols_size, c11_line_size, c13_line_size, _io, _parent=None, _root=None):
+    def __init__(self, symbols_size, c11_line_size, c13_line_size, global_refs_present, _io, _parent=None, _root=None):
         super(ModiStream, self).__init__(_io)
         self._parent = _parent
         self._root = _root or self
         self.symbols_size = symbols_size
         self.c11_line_size = c11_line_size
         self.c13_line_size = c13_line_size
+        self.global_refs_present = global_refs_present
         self._read()
 
     def _read(self):
@@ -37,11 +38,11 @@ class ModiStream(KaitaiStruct):
         self._raw_c13_line_info = self._io.read_bytes(self.c13_line_size)
         _io__raw_c13_line_info = KaitaiStream(BytesIO(self._raw_c13_line_info))
         self.c13_line_info = c13_line_stream.C13LineStream(_io__raw_c13_line_info)
-        if  ((self.symbols_size > 0) and (self.signature != 65537)) :
+        if  ((self.global_refs_present) and (self.symbols_size > 0) and (self.signature != 65537)) :
             pass
             self.global_refs_size = self._io.read_u4le()
 
-        if  ((self.symbols_size > 0) and (self.signature != 65537)) :
+        if  ((self.global_refs_present) and (self.symbols_size > 0) and (self.signature != 65537)) :
             pass
             self.global_refs = self._io.read_bytes(self.global_refs_size)
 
@@ -57,10 +58,10 @@ class ModiStream(KaitaiStruct):
             self.symbols._fetch_instances()
 
         self.c13_line_info._fetch_instances()
-        if  ((self.symbols_size > 0) and (self.signature != 65537)) :
+        if  ((self.global_refs_present) and (self.symbols_size > 0) and (self.signature != 65537)) :
             pass
 
-        if  ((self.symbols_size > 0) and (self.signature != 65537)) :
+        if  ((self.global_refs_present) and (self.symbols_size > 0) and (self.signature != 65537)) :
             pass
 
 

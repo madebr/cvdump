@@ -221,7 +221,8 @@ def main():
                         c11_line_size = dbi_module_info_entry.lines_size
                         c13_line_size = 0
                     module_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(stream_index))
-                    module_stream = ModiStream(symbols_size=symbols_size, c11_line_size=c11_line_size, c13_line_size=c13_line_size, _io=module_kaitai_stream)
+                    global_refs_present = get_info().version > 19941610 # Probably not present in Visual Studio C++ 2.10/2.20 PDB's
+                    module_stream = ModiStream(global_refs_present=global_refs_present, symbols_size=symbols_size, c11_line_size=c11_line_size, c13_line_size=c13_line_size, _io=module_kaitai_stream)
                 private_module_streams[module_index] = module_stream
             return private_module_streams[module_index]
         def get_machine() -> Machine | None:

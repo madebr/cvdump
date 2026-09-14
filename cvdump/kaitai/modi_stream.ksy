@@ -10,6 +10,8 @@ params:
     type: u4
   - id: c13_line_size
     type: u4
+  - id: global_refs_present
+    type: bool
 seq:
   - id: signature
     type: u4
@@ -17,7 +19,7 @@ seq:
     valid:
       any-of: [65537, 1, 2, 4]
       # CV_SIGNATURE_C6   (0) # Actual signature is >64K
-      # CV_SIGNATURE_C7   (1) # First explicit signature (MSVC 4.2)
+      # CV_SIGNATURE_C7   (1) # First explicit signature (Visual C++ 2.0, MSVC 4.2)
       # CV_SIGNATURE_C11  (2) # C11 (vc5.x) 32-bit types (MSVC5, MSVC6)
       # CV_SIGNATURE_C13  (4) # C13 (vc7.x) zero terminated names (MSVC2026)
   - id: symbols
@@ -30,11 +32,11 @@ seq:
     size: c13_line_size
     type: c13_line_stream
   - id: global_refs_size
-    if: symbols_size > 0 and signature != 65537
+    if: global_refs_present and symbols_size > 0 and signature != 65537
     doc: 'not sure about the symbols_size > 0 part, but required for a pure asm source, which provided 0 symbols (symbols_size == 0)'
     type: u4
   - id: global_refs
-    if: symbols_size > 0 and signature != 65537
+    if: global_refs_present and symbols_size > 0 and signature != 65537
     doc: 'not sure about the symbols_size > 0 part, but required for a pure asm source, which provided 0 symbols (symbols_size == 0)'
     size: global_refs_size
 types:
