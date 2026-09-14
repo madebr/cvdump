@@ -10,7 +10,7 @@ seq:
   - id: version
     type: u4
     valid:
-      any-of: [920924, 19951122, 19961031, 20040203]
+      any-of: [920924, 19951122, 19961031, 19990903, 20040203]
   - id: header
     type: tpi_header(version)
   - id: records
@@ -40,7 +40,7 @@ types:
       use_16t:
         value: version == 920924 or version == 19951122
       use_new:
-        value: version == 19961031 or version == 20040203
+        value: version == 19961031 or version == 19990903 or version == 20040203
       ti_min:
         value: 'use_16t ? header_16t.ti_min : header_new.ti_min'
       ti_max:

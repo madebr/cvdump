@@ -22,7 +22,7 @@ class TpiStream(KaitaiStruct):
 
     def _read(self):
         self.version = self._io.read_u4le()
-        if not  ((self.version == 920924) or (self.version == 19951122) or (self.version == 19961031) or (self.version == 20040203)) :
+        if not  ((self.version == 920924) or (self.version == 19951122) or (self.version == 19961031) or (self.version == 19990903) or (self.version == 20040203)) :
             raise kaitaistruct.ValidationNotAnyOfError(self.version, self._io, u"/seq/0")
         self.header = TpiStream.TpiHeader(self.version, self._io, self, self._root)
         self.records = []
@@ -2072,7 +2072,7 @@ class TpiStream(KaitaiStruct):
             if hasattr(self, '_m_use_new'):
                 return self._m_use_new
 
-            self._m_use_new =  ((self.version == 19961031) or (self.version == 20040203)) 
+            self._m_use_new =  ((self.version == 19961031) or (self.version == 19990903) or (self.version == 20040203)) 
             return getattr(self, '_m_use_new', None)
 
 
