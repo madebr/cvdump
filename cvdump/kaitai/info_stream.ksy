@@ -4,6 +4,11 @@ meta:
 seq:
   - id: version
     type: u4
+    # 19941610: Visual C++ 2.0
+    # 19950814: Visual Studio 4.2.0
+    # 19960307: Visual Studio 97
+    # 19970604: Visual Studio 98
+    # 20000404: Next
   - id: timestamp
     type: u4
   - id: contents_vc50

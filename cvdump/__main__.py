@@ -82,8 +82,9 @@ def main():
         def get_dbi() -> DbiStream:
             nonlocal private_dbi
             if not private_dbi:
+                pdb_info = get_info()
                 dbi_kaitai_stream = kaitaistruct.KaitaiStream(msf_file.create_stream(MsfFile.DBI_STREAM_INDEX))
-                private_dbi = DbiStream(dbi_kaitai_stream)
+                private_dbi = DbiStream(pdb_version=pdb_info.version, _io=dbi_kaitai_stream)
             return private_dbi
         def get_tpi() -> TpiStream:
             nonlocal private_tpi
