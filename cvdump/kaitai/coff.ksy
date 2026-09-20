@@ -3,6 +3,7 @@ meta:
   imports:
     - c13_line_stream
     - cv_symbol_stream
+    - guid
   endian: le
 seq:
   - id: header
@@ -14,12 +15,41 @@ seq:
 types:
   header:
     seq:
+      - id: data1
+        type: u2
+      - id: data2
+        type: u2
+      - id: normal_header
+        type: normal_header(data1, data2)
+        if: not is_big_obj
+      - id: bigobj_header
+        type: anon_object_header_bigobj(data1, data2)
+        if: is_big_obj
+    instances:
+      is_big_obj:
+        value: 'data1 == 0x0000 and data2 == 0xffff'
+      machine:
+        value: 'is_big_obj ? bigobj_header.machine : normal_header.machine'
+      number_of_sections:
+        value: 'is_big_obj ? bigobj_header.number_of_sections : normal_header.number_of_sections'
+      number_of_symbols:
+        value: 'is_big_obj ? bigobj_header.number_of_symbols : normal_header.number_of_symbols'
+      time_date_stamp:
+        value: 'is_big_obj ? bigobj_header.time_date_stamp : normal_header.time_date_stamp'
+      pointer_to_symbol_table:
+        value: 'is_big_obj ? bigobj_header.pointer_to_symbol_table : normal_header.pointer_to_symbol_table'
+#      size_of_optional_header:
+#        value: 'is_big_obj ? bigobj_header.size_of_optional_header : normal_header.size_of_optional_header'
+
+  normal_header:
+    params:
       - id: machine
         type: u2
         doc: 'The number that identifies the type of target machine'
       - id: number_of_sections
         type: u2
         doc: 'The number of sections. This indicates the size of the section table, which immediately follows the headers.'
+    seq:
       - id: time_date_stamp
         type: u4
         doc: 'The low 32 bits of the number of seconds since 00:00 January 1, 1970 (a C run-time time_t value), which indicates when the file was created.'
@@ -35,6 +65,51 @@ types:
       - id: characteristics
         type: u2
         doc: 'The flags that indicate the attributes of the file.'
+
+  anon_object_header_bigobj:
+    doc: ANON_OBJECT_HEADER_BIGOBJ
+    params:
+      - id: sig1
+        type: u2
+        doc: Must be IMAGE_FILE_MACHINE_UNKNOWN
+      - id: sig2
+        type: u2
+        doc: Must be 0xffff
+    seq:
+      - id: version
+        type: u2
+        doc: Version (>= 2 (implies the Flags field is present))
+        valid:
+          expr: _ >= 2
+      - id: machine
+        type: u2
+        doc: Machine (Actual machine - IMAGE_FILE_MACHINE_xxx)
+      - id: time_date_stamp
+        type: u4
+      - id: class_id
+        type: guid
+        doc: '{D1BAA1C7-BAEE-4ba9-AF20-FAF66AA4DCB8}'
+        valid:
+          expr: _.data1 == 0xd1baa1c7 and _.data2 == 0xbaee and _.data3 == 0x4ba9 and _.data4[0] == 0xaf and _.data4[1] == 0x20 and _.data4[2] == 0xfa and _.data4[3] == 0xf6 and _.data4[4] == 0x6a and _.data4[5] == 0xa4 and _.data4[6] == 0xdc and _.data4[7] == 0xB8
+      - id: size_of_data
+        type: u4
+        doc: Size of data that follows the header
+      - id: flags
+        type: u4
+        doc: 0x1 -> contains metadata
+      - id: meta_data_size
+        type: u4
+        doc: MetaDataSize, Size of CLR metadata
+      - id: meta_data_offset
+        type: u4
+        doc: MetaDataOffset, offset of CLR metadata
+      - id: number_of_sections
+        type: u4
+        doc: extended from WORD
+      - id: pointer_to_symbol_table
+        type: u4
+      - id: number_of_symbols
+        type: u4
   section_header:
     seq:
       - id: name
@@ -132,12 +207,18 @@ types:
 
 
   symbol_table:
+    params:
+      - id: big
+        type: bool
     seq:
       - id: items
-        type: symbol_table_item
+        type: symbol_table_item(big)
         repeat: eos
 
   symbol_table_item:
+    params:
+      - id: big
+        type: bool
     seq:
       - id: name
         size: 8
@@ -145,8 +226,13 @@ types:
       - id: value
         type: u4
         doc: The value that is associated with the symbol. The interpretation of this field depends on SectionNumber and StorageClass. A typical meaning is the relocatable address.
-      - id: section_number
+      - id: section_number_small
+        if: not big
         type: s2
+        doc: The signed integer that identifies the section, using a one-based index into the section table. Some values have special meaning, as defined in section 5.4.2, "Section Number Values."
+      - id: section_number_big
+        if: big
+        type: s4
         doc: The signed integer that identifies the section, using a one-based index into the section table. Some values have special meaning, as defined in section 5.4.2, "Section Number Values."
       - id: type
         type: u2
@@ -158,7 +244,10 @@ types:
         type: u1
         doc: The number of auxiliary symbol table entries that follow this record.
       - id: aux_symbols
-        size: 18 * number_of_aux_symbols
+        size: '(big ? 20 : 18) * number_of_aux_symbols'
+    instances:
+      section_number:
+        value: 'big ? section_number_big : section_number_small'
   relocations:
     seq:
       - id: items

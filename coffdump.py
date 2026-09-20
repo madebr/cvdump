@@ -59,8 +59,9 @@ def main():
         print(f"        Time date stamp: {datetime.datetime.fromtimestamp(coff.header.time_date_stamp).strftime('%Y-%m-%d %H:%M:%S')} (0x{coff.header.time_date_stamp:08x})")
         print(f"Pointer to Symbol Table: 0x{coff.header.pointer_to_symbol_table:08x}")
         print(f"      Number of symbols: {coff.header.number_of_symbols}")
-        print(f"Size of optional header: 0x{coff.header.size_of_optional_header:04x}")
-        print(f"        Characteristics: {cvdump.pe_coff.PeCoffCharacteristic(coff.header.characteristics)} (0x{coff.header.characteristics:04x})")
+        if not coff.header.is_big_obj:
+            print(f"Size of optional header: 0x{coff.header.normal_header.size_of_optional_header:04x}")
+            print(f"        Characteristics: {cvdump.pe_coff.PeCoffCharacteristic(coff.header.normal_header.characteristics)} (0x{coff.header.normal_header.characteristics:04x})")
 
         names_table = None
         checksums = {}
@@ -227,8 +228,8 @@ def main():
             return name
 
         coff_file.seek(coff.header.pointer_to_symbol_table)
-        symbol_table_raw_table = coff_file.read(0x12 * coff.header.number_of_symbols)
-        symbol_table = cvdump.kaitai.coff.Coff.SymbolTable(kaitaistruct.KaitaiStream(io.BytesIO(symbol_table_raw_table)))
+        symbol_table_raw_table = coff_file.read((0x14 if coff.header.is_big_obj else 0x12) * coff.header.number_of_symbols)
+        symbol_table = cvdump.kaitai.coff.Coff.SymbolTable(big=coff.header.is_big_obj, _io=kaitaistruct.KaitaiStream(io.BytesIO(symbol_table_raw_table)))
 
         def get_section_number_name(v: int) -> str:
             match v:
