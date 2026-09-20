@@ -169,8 +169,10 @@ types:
             'leaf::leaf_type::lf_structure': lf_class
             'leaf::leaf_type::lf_interface': lf_class
             'leaf::leaf_type::lf_pointer': lf_pointer
+            'leaf::leaf_type::lf_vftable': lf_vftable
 
             # IPI
+            'leaf::leaf_type::lf_udt_src_line': lf_udt_src_line
             'leaf::leaf_type::lf_udt_mod_src_line': lf_udt_mod_src_line
             'leaf::leaf_type::lf_string_id': lf_string_id
             'leaf::leaf_type::lf_substr_list': lf_arglist
@@ -998,7 +1000,40 @@ types:
       - id: position
         type: u1
 
+  lf_vftable:
+    doc: lfVftable (cvinfo.h)
+    seq:
+      - id: type
+        type: u4
+        doc: class/structure that owns the vftable
+      - id: base_vftable
+        type: u4
+        doc: vftable from which this vftable is derived
+      - id: offset_in_object_layout
+        type: u4
+        doc: offset of the vfptr to this table, relative to the start of the object layout.
+      - id: len_bytes
+        type: u4
+        doc: length of the names array below in bytes
+      - id: names
+        size: len_bytes
+        doc: |
+          array of names.
+          The first is the name of the vtable.
+          The others are the names of the methods.
   # IPI
+  lf_udt_src_line:
+    doc: lfUdtSrcLine (cvinfo.h)
+    seq:
+      - id: type
+        type: u4
+        doc: UDT's type index
+      - id: src
+        type: u4
+        doc: index to LF_STRING_ID record where source file name is saved
+      - id: line
+        type: u4
+        doc: line number
   lf_udt_mod_src_line:
     doc: lfUdtModSrcLine (cvinfo.h)
     seq:

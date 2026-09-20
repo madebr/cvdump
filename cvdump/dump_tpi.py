@@ -1262,6 +1262,9 @@ def dump_type_stream(tpi_records: typing.Iterable[TpiStream.Record], ti_min: int
                 print(f", Type = {get_c7_type_name(record.leaf.body.type)}")
 
             # TPI
+            case TpiStream.Leaf.LeafType.lf_udt_src_line:
+                print()
+                print(f"\ttype = {get_c7_type_name(record.leaf.body.type)}, source file = {get_c7_type_name(record.leaf.body.src)}, line = {record.leaf.body.line}")
             case TpiStream.Leaf.LeafType.lf_udt_mod_src_line:
                 print()
                 source_file = names_stream.get_text_at_offset(record.leaf.body.src)
@@ -1307,6 +1310,29 @@ def dump_type_stream(tpi_records: typing.Iterable[TpiStream.Record], ti_min: int
             case TpiStream.Leaf.LeafType.lf_typeserver_st:
                 print()
                 print(f"\t\tSignature={record.leaf.body.signature:08X}, age = 0x{record.leaf.body.age:08x}, PDB name = '{record.leaf.body.name}'")
+            case TpiStream.Leaf.LeafType.lf_vftable:
+                print()
+                print(f"\tType = 0x{record.leaf.body.type:04x}, ", end="")
+                print(f"base vftable = 0x{record.leaf.body.base_vftable:04x}, ", end="")
+                print(f"offset in objects layout = {record.leaf.body.offset_in_object_layout}, ", end="")
+                def iter_names(buffer: bytes):
+                    pos = 0
+                    while True:
+                        end_name = buffer.find(0,  pos)
+                        if pos >= len(buffer):
+                            return
+                        if end_name == -1:
+                            yield buffer[pos:].decode("ASCII")
+                            break
+                        else:
+                            yield buffer[pos:end_name].decode("ASCII")
+                            pos = end_name + 1
+                iter_obj = iter_names(record.leaf.body.names)
+
+                print(f"len of contents = {record.leaf.body.len_bytes}")
+                print(f"\tUnique name = {next(iter_obj)}")
+                for i, n in enumerate(iter_obj):
+                    print(f"\t{i:3}   {n}")
             case _:
                 raise ValueError(record.leaf.type, repr(record.leaf.type))
         print()

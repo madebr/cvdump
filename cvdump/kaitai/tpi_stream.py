@@ -616,6 +616,11 @@ class TpiStream(KaitaiStruct):
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfUdtModSrcLine(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_udt_src_line:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfUdtSrcLine(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_union:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
@@ -631,6 +636,11 @@ class TpiStream(KaitaiStruct):
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
                 _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
                 self.body = TpiStream.LfUnion(_io__raw_body, self, self._root)
+            elif _on == TpiStream.Leaf.LeafType.lf_vftable:
+                pass
+                self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = TpiStream.LfVftable(_io__raw_body, self, self._root)
             elif _on == TpiStream.Leaf.LeafType.lf_vtshape:
                 pass
                 self._raw_body = self._io.read_bytes(self._parent.record_size - 2)
@@ -755,6 +765,9 @@ class TpiStream(KaitaiStruct):
             elif _on == TpiStream.Leaf.LeafType.lf_udt_mod_src_line:
                 pass
                 self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_udt_src_line:
+                pass
+                self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_union:
                 pass
                 self.body._fetch_instances()
@@ -762,6 +775,9 @@ class TpiStream(KaitaiStruct):
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_union_st:
+                pass
+                self.body._fetch_instances()
+            elif _on == TpiStream.Leaf.LeafType.lf_vftable:
                 pass
                 self.body._fetch_instances()
             elif _on == TpiStream.Leaf.LeafType.lf_vtshape:
@@ -1793,6 +1809,24 @@ class TpiStream(KaitaiStruct):
             pass
 
 
+    class LfUdtSrcLine(KaitaiStruct):
+        """lfUdtSrcLine (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfUdtSrcLine, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.type = self._io.read_u4le()
+            self.src = self._io.read_u4le()
+            self.line = self._io.read_u4le()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class LfUnion(KaitaiStruct):
         """lfUnion (cvinfo.h)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -1887,6 +1921,26 @@ class TpiStream(KaitaiStruct):
             pass
             self.vbpoff._fetch_instances()
             self.vbind._fetch_instances()
+
+
+    class LfVftable(KaitaiStruct):
+        """lfVftable (cvinfo.h)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(TpiStream.LfVftable, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.type = self._io.read_u4le()
+            self.base_vftable = self._io.read_u4le()
+            self.offset_in_object_layout = self._io.read_u4le()
+            self.len_bytes = self._io.read_u4le()
+            self.names = self._io.read_bytes(self.len_bytes)
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class LfVfunctab(KaitaiStruct):
