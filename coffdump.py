@@ -62,6 +62,9 @@ def main():
         print(f"Size of optional header: 0x{coff.header.size_of_optional_header:04x}")
         print(f"        Characteristics: {cvdump.pe_coff.PeCoffCharacteristic(coff.header.characteristics)} (0x{coff.header.characteristics:04x})")
 
+        names_table = None
+        checksums = {}
+
         for section_i, section_header in enumerate(coff.section_headers, 1):
             print()
             print(f"- Section {section_i}:")
@@ -100,15 +103,13 @@ def main():
                 elif hasattr(debug_s_things, "c13_stream"):
                     # Visual Studio 2012
                     assert debug_s_things.signature == 4
-                    checksums = {}
-                    names_table = None
                     for subsection in debug_s_things.c13_stream.subsections:
                         match subsection.header.type:
                             case C13LineStream.DebugSSubsectionType.debug_s_stringtable:
                                 assert names_table is None
                                 names_table = cvdump.names.StringTable.from_bytes(subsection.contents.data)
                             case C13LineStream.DebugSSubsectionType.debug_s_filechksms:
-                                assert not checksums
+                                checksums = {}
                                 for cksum in subsection.contents.checksums:
                                     checksums[cksum.pos] = cksum
                     # assert names_table is not None
@@ -151,7 +152,7 @@ def main():
                     cvdump.dump_tpi.dump_type_stream(tpi_records=tpi_records.records, ti_min=0, names_stream=None)
                 else:
                     raise ValueError(f"Unsupported .debug$T signature: 0x{debug_t_signature:X}")
-            elif section_header.name in (b".data\x00\x00\x00", b".rdata\x00\x00") and section_header.characteristics & DATA_CHARACTERISTICS == DATA_CHARACTERISTICS:
+            elif section_header.name in (b".data\x00\x00\x00", b".rdata\x00\x00", b".rdata$r") and section_header.characteristics & DATA_CHARACTERISTICS == DATA_CHARACTERISTICS:
                 coff_file.seek(section_header.pointer_to_raw_data)
                 data = coff_file.read(section_header.size_of_raw_data)
                 print(f"data = ", end="")
