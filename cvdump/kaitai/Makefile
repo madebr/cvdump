@@ -8,6 +8,7 @@ SCHEMAS := \
 	coff.ksy \
 	cv_symbol.ksy \
 	cv_symbol_stream.ksy \
+    fpo_data.ksy \
     guid.ksy \
     info_stream.ksy \
     modi_stream.ksy \

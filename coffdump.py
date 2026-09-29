@@ -11,6 +11,7 @@ import textwrap
 import cvdump.kaitai.coff
 import cvdump.kaitai.c13_line_stream
 from cvdump.kaitai.c13_line_stream import C13LineStream
+import cvdump.kaitai.fpo_data
 import cvdump.kaitai.tpi_stream
 import cvdump.pe_coff
 import cvdump.dump_c13
@@ -89,6 +90,18 @@ def main():
             if section_header.name == b".drectve" and section_header.characteristics & DIRECTIVE_CHARACTERISTICS == DIRECTIVE_CHARACTERISTICS:
                 print()
                 print(f"    contents = '{section_raw_data.decode('ascii')}'")
+            elif section_header.name == b".debug$F":
+                fpo_datas = cvdump.kaitai.fpo_data.FpoData.FpoDatas(_io=kaitaistruct.KaitaiStream(io.BytesIO(section_raw_data)))
+                for fpo_i, fpo_data in enumerate(fpo_datas.items):
+                    print(f"- {fpo_i:4}:      Offset = {fpo_data.offset:08x}")
+                    print(f"          Proc Size = 0x{fpo_data.proc_size:08x}")
+                    print(f"       Count Locals = 0x{fpo_data.count_locals:08x}")
+                    print(f"        Count Paams = 0x{fpo_data.count_params:08x}")
+                    print(f"        Size Prolog = {fpo_data.flags & 0xff}")
+                    print(f"          Size Regs = {(fpo_data.flags & 0x700) >> 8}")
+                    print(f"                SEH = {bool(fpo_data.flags & 0x800)}")
+                    print(f"                 BP = {bool(fpo_data.flags & 0x1000)}")
+                    print(f"         Size Frame = {(fpo_data.flags & 0xc000) >> 14}")
             elif section_header.name == b".debug$S":
                 machine_config = cvdump.dump_symbol.MachineConfig(machine=cvdump.machine.Machine(coff.header.machine))
                 debug_s_things = cvdump.kaitai.coff.Coff.DebugS(size=section_header.size_of_raw_data, _io=kaitaistruct.KaitaiStream(io.BytesIO(section_raw_data)))
@@ -153,7 +166,7 @@ def main():
                     cvdump.dump_tpi.dump_type_stream(tpi_records=tpi_records.records, ti_min=0, names_stream=None)
                 else:
                     raise ValueError(f"Unsupported .debug$T signature: 0x{debug_t_signature:X}")
-            elif section_header.name in (b".data\x00\x00\x00", b".rdata\x00\x00", b".rdata$r") and section_header.characteristics & DATA_CHARACTERISTICS == DATA_CHARACTERISTICS:
+            elif (section_header.name in (b".data\x00\x00\x00", b".rdata\x00\x00", b".rdata$r") or section_header.name.startswith(b".CRT$XC")) and section_header.characteristics & DATA_CHARACTERISTICS == DATA_CHARACTERISTICS:
                 coff_file.seek(section_header.pointer_to_raw_data)
                 data = coff_file.read(section_header.size_of_raw_data)
                 print(f"data = ", end="")
@@ -168,6 +181,8 @@ def main():
                 for insn in md.disasm(text_data, 0x0):
                     # insn: capstone.CsInsn
                     print(f"0x{insn.address:08x}:\t{insn.mnemonic}\t{insn.op_str}")
+            elif section_header.name == b".bss\x00\x00\x00\x00":
+                assert section_header.pointer_to_raw_data == 0
             elif section_header.name == b".edata\x00\x00":
                 coff_file.seek(section_header.pointer_to_raw_data)
                 data = coff_file.read(section_header.size_of_raw_data)
